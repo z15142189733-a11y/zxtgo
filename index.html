@@ -572,12 +572,12 @@ class GoAI {
     if (esc) return esc;
 
     const cands = this._getCandidates(game, color, allMoves);
-    // 三档差距：入门≈15-20级，进阶≈8-12级，挑战≈3-6级
-    // 小棋盘每步耗时更短，多给模拟次数换取更强棋力
+    // MCTS fallback：神经网络不可用时的兜底
+    // 13×19 大幅加强，与神经网络版本差距尽量缩小
     const simTable = {
-      hard:   { 9: 12000, 13: 5000, 19: 1200 },
-      medium: { 9: 5000,  13: 2200, 19: 500  },
-      easy:   { 9: 1000,  13: 500,  19: 200  },
+      hard:   { 9: 12000, 13: 10000, 19: 4000 },
+      medium: { 9: 5000,  13: 4000,  19: 1500 },
+      easy:   { 9: 1000,  13: 500,   19: 200  },
     };
     const N = (simTable[this.diff] || {})[game.size] || 200;
     return this._mcts(game, color, cands, N);
@@ -1386,6 +1386,7 @@ class BrowserKataGoAI {
   }
 
   // ── 加载模型 ─────────────────────────────────────────
+  // 依次尝试多个 CDN 源，任一成功即停止
   async _ensureModel() {
     if (this.modelReady)  return true;
     if (this.modelFailed) return false;
@@ -1397,14 +1398,45 @@ class BrowserKataGoAI {
     try {
       await this._loadTF();
       const tf = this.tf;
-      const CDN = 'https://cdn.jsdelivr.net/gh/maksimKorzh/kata-model-js@main/model/b10c128-s1141046784-d204142634/model.json';
-      const IDB = 'indexeddb://katago-b10c128-v5';
+      const IDB  = 'indexeddb://katago-b10c128-v5';
+      const BASE = 'b10c128-s1141046784-d204142634';
+      // 多个备用源，按可用性排序
+      const URLS = [
+        `https://raw.githubusercontent.com/maksimKorzh/kata-model-js/main/model/${BASE}/model.json`,
+        `https://cdn.jsdelivr.net/gh/maksimKorzh/kata-model-js@main/model/${BASE}/model.json`,
+        `https://ghproxy.com/https://raw.githubusercontent.com/maksimKorzh/kata-model-js/main/model/${BASE}/model.json`,
+      ];
 
+      // 1. 尝试从 IndexedDB 缓存加载
       let cached = false;
-      try { this.model = await tf.loadGraphModel(IDB); cached = true; } catch(_) {}
+      try {
+        this.model = await tf.loadGraphModel(IDB);
+        cached = true;
+        console.log('[KataGo] 从缓存加载成功');
+      } catch(_) {}
+
+      // 2. 缓存未命中，逐一尝试远程 URL
       if (!cached) {
-        this.model = await tf.loadGraphModel(CDN);
-        try { await this.model.save(IDB); } catch(_) {}
+        let lastErr = null;
+        for (const url of URLS) {
+          try {
+            console.log('[KataGo] 尝试:', url);
+            // 先检测 model.json 是否可达（超时 8 秒）
+            const probe = await Promise.race([
+              fetch(url, { method: 'HEAD' }),
+              new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000)),
+            ]);
+            if (!probe.ok) { console.warn('[KataGo] HEAD失败:', probe.status, url); continue; }
+            this.model = await tf.loadGraphModel(url);
+            try { await this.model.save(IDB); } catch(_) {}
+            console.log('[KataGo] 从远程加载成功:', url);
+            break;
+          } catch(e) {
+            lastErr = e;
+            console.warn('[KataGo] 源失败:', url, e.message);
+          }
+        }
+        if (!this.model) throw lastErr || new Error('所有模型源均不可用');
       }
 
       console.log('KataGo 输入:', (this.model.inputs||[]).map(x=>x.name+' '+JSON.stringify(x.shape)));
@@ -1598,20 +1630,19 @@ class BrowserKataGoAI {
   }
 
   // ── 主接口 ────────────────────────────────────────────
-  // 19×19 用 KataGo 神经网络；9×9/13×13 用高强度 MCTS（模型不支持小棋盘）
+  // 所有棋盘尺寸均尝试 KataGo 神经网络（b10c128 支持 9/13/19 路）
+  // 9×9：NN 筛选 Top-K 候选手 → 短 MCTS 验证（混合模式，规避小棋盘偶发失误）
+  // 13×19：直接 NN 落子（与原 19×19 逻辑相同）
+  // 模型加载失败：降级到高强度 MCTS
   async getBestMoveAsync(game, color, onStatus) {
-    if (game.size !== 19) {
-      this._setBadge('⚙️ MCTS 深度搜索中…', '#5ba85b');
-      if (onStatus) onStatus('local_mcts');
-      await new Promise(r => setTimeout(r, 30));
-      return this.fallback.getBestMove(game, color);
-    }
     if(onStatus) onStatus('browser_loading');
+    this._setBadge('⏳ 加载神经网络模型…', '#aaa');
 
     const ok = await this._ensureModel();
     if(!ok) {
-      this._setBadge('🤖 本地AI（模型未加载）', '#e57373');
-      if(onStatus) onStatus('local');
+      this._setBadge('⚙️ MCTS 深度搜索中…', '#5ba85b');
+      if(onStatus) onStatus('local_mcts');
+      await new Promise(r => setTimeout(r, 30));
       return this.fallback.getBestMove(game, color);
     }
 
@@ -1621,32 +1652,46 @@ class BrowserKataGoAI {
       const N = game.size;
       const { policy, winProb } = await this._runInference(game, color);
 
-      this._setBadge('🧠 KataGo 神经网络', '#7b68ee');
+      const validMoves = game.getValidMoves(color);
+      if(!validMoves.length) return null;
 
-      // 认输判断（需有 winrate 输出）
-      if(winProb!==null && winProb<-0.85 && game.moveCount>30) {
+      // 认输判断：根据棋盘尺寸调整触发时机
+      const resignThresh = N === 9 ? 15 : N === 13 ? 30 : 40;
+      if(winProb!==null && winProb<-0.85 && game.moveCount>resignThresh) {
         this._resignConsec++;
         if(this._resignConsec>=3) { this._resignConsec=0; return AI_RESIGN; }
       } else { this._resignConsec=0; }
 
-      const validMoves = game.getValidMoves(color);
-      if(!validMoves.length) return null;
+      // ── 9×9 混合模式：NN top-K → MCTS 验证 ─────────────────
+      // 用 NN policy 筛选最有价值的候选手，再用 MCTS 做战术校验
+      // 既保留 NN 的布局直觉，又通过 MCTS 弥补小棋盘偶发误判
+      if (N === 9) {
+        const K = Math.min(20, validMoves.length);
+        const topCands = validMoves
+          .map(([r,c]) => ({ move:[r,c], p: policy[r*N+c] }))
+          .sort((a,b) => b.p - a.p)
+          .slice(0, K)
+          .map(x => x.move);
+        const mctsN = this.diff==='hard' ? 2500 : this.diff==='medium' ? 1000 : 400;
+        this._setBadge('🧠 KataGo + MCTS', '#7b68ee');
+        if(onStatus) onStatus('browser_thinking');
+        return this.fallback._mcts(game, color, topCands, mctsN);
+      }
 
-      // 难度噪声：进阶加随机扰动，挑战近确定性
+      // ── 13×13 / 19×19：直接 NN 落子 ────────────────────────
+      this._setBadge(`🧠 KataGo 神经网络 (${N}×${N})`, '#7b68ee');
+      // 难度噪声：挑战≈确定性，进阶加扰动
       const noise = this.diff==='medium' ? 1.5 : 0.15;
       let best=null, bestScore=-Infinity;
       for(const[r,c] of validMoves) {
         const score = policy[r*N+c] + (Math.random()-0.5)*noise;
         if(score>bestScore) { bestScore=score; best=[r,c]; }
       }
-
-      // 有合法手就落子，不主动 pass
       return best;
     } catch(e) {
-      const msg = e.message ? e.message.slice(0,50) : String(e);
       console.warn('KataGo 推理失败:', e);
-      this._setBadge('🤖 本地AI（推理失败: '+msg+'）', '#e57373');
-      if(onStatus) onStatus('local');
+      this._setBadge('⚙️ MCTS 深度搜索中…', '#5ba85b');
+      if(onStatus) onStatus('local_mcts');
       return this.fallback.getBestMove(game, color);
     }
   }
@@ -1971,9 +2016,10 @@ async function _doAIMove() {
   if (battleAI instanceof BrowserKataGoAI) {
     thinkEl.textContent = '⏳ 加载 AI 模型…';
     m = await battleAI.getBestMoveAsync(battGame, 2, (src) => {
-      if (src === 'browser_loading') thinkEl.textContent = '⏳ 加载 AI 模型（首次约30秒）…';
-      else if (src === 'browser_thinking') thinkEl.textContent = '🧠 KataGo 思考中…';
-      else if (src === 'local') thinkEl.textContent = '🤖 本地 AI 思考中…';
+      if (src === 'browser_loading') thinkEl.textContent = '⏳ 加载神经网络模型（首次约30秒）…';
+      else if (src === 'browser_thinking') thinkEl.textContent = '🧠 KataGo 神经网络思考中…';
+      else if (src === 'local_mcts') thinkEl.textContent = '⚙️ MCTS 深度搜索中…';
+      else if (src === 'local') thinkEl.textContent = '⚙️ MCTS 深度搜索中…';
     });
   } else {
     thinkEl.textContent = '🤖 本地 AI 思考中…';
