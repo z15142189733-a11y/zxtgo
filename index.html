@@ -1791,10 +1791,19 @@ class BrowserKataGoAI {
       }
 
       // ── 13×13 / 19×19：NN 落子（带 MCTS fallback）──────────
-      // 若所有 policy 值都在 -50 以下，视为 NN 输出异常，改用强 MCTS
-      const policyMax = validMoves.reduce((mx,[r,c]) => Math.max(mx, policy[r*N+c]), -Infinity);
-      if (policyMax < -50) {
-        console.warn('[KataGo] policy 全部异常(max=' + policyMax.toFixed(1) + ')，降级至 MCTS');
+      // 直接扫描棋盘空格 + policy > -4990（避免 validMoves 坐标不一致问题）
+      const MASK_THR = -4990;
+      const nnCands = [];
+      for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+        if (game.board[r][c] === 0) {
+          const p = policy[r*N+c];
+          if (p > MASK_THR) nnCands.push([r, c, p]);
+        }
+      }
+      console.log('[KataGo] nnCands:', nnCands.length, 'best=', nnCands.length ? Math.max(...nnCands.map(x=>x[2])).toFixed(2) : 'none');
+      if (!nnCands.length) {
+        // NN 完全无效，降级至强 MCTS
+        console.warn('[KataGo] NN 无有效候选，降级至 MCTS');
         const mctsN = this.diff==='hard' ? 4000 : this.diff==='medium' ? 2000 : 600;
         this._setBadge('⚙️ MCTS 深度搜索中…', '#5ba85b');
         if(onStatus) onStatus('local_mcts');
@@ -1804,9 +1813,13 @@ class BrowserKataGoAI {
       // 难度噪声：挑战≈确定性，进阶加扰动
       const noise = this.diff==='medium' ? 1.5 : 0.15;
       let best=null, bestScore=-Infinity;
-      for(const[r,c] of validMoves) {
-        const score = policy[r*N+c] + (Math.random()-0.5)*noise;
+      for(const[r,c,p] of nnCands) {
+        const score = p + (Math.random()-0.5)*noise;
         if(score>bestScore) { bestScore=score; best=[r,c]; }
+      }
+      // 验证 best 是否合法（不是自杀、不是劫），否则退回 validMoves
+      if (best && !game.isValidMove(best[0], best[1], color)) {
+        best = validMoves.length ? validMoves[0] : null;
       }
       return best;
     } catch(e) {
