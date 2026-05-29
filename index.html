@@ -1568,9 +1568,12 @@ class BrowserKataGoAI {
   // ── 推理 ─────────────────────────────────────────────
   // 模型含动态分支，必须用 executeAsync 而非 predict
   //
-  // TF.js 无论是否指定输出名，都按模型自然顺序返回全部输出：
-  //   [ownership(size=361), policy(size=362), miscvalues(size≈6), value(size=3)]
-  // 因此用 tensor.size 来识别 policy(362) 和 value(3)，避免顺序依赖。
+  // 输出自动识别规则：
+  //   Policy  = softmax 输出，所有值 ≥ 0，长度 ≈ 361~362（单头）或 ≈ 722~724（双头）
+  //   Ownership = tanh，含负值，长度 ≈ 361 或 722~724
+  //   Value   = 3 个元素
+  //   Misc    = 其他
+  // 用「是否含负值」区分 policy（全非负）与 ownership（含负值）。
   async _runInference(game, color) {
     const { binT, glbT, M, N } = this._buildInputs(game, color);
 
@@ -1583,39 +1586,105 @@ class BrowserKataGoAI {
       binT.dispose(); glbT.dispose();
     }
 
-    // 模型输出固定顺序（console 已确认）：
-    //   [0] ownership_output  361 vals
-    //   [1] policy_output     361 vals  ← 需要这个
-    //   [2] miscvalues_output ~6 vals
-    //   [3] value_output      3 vals
-    // policy 与 ownership 同为 361，不能按长度区分，固定取 index=1
     const outsArr = Array.isArray(allOuts) ? allOuts : [allOuts];
+
+    // ① 保存 shape 并读取数据
+    const shapes = outsArr.map(t => ({sz: t.size, shape: t.shape ? [...t.shape] : null}));
     const allData = [];
     for (const t of outsArr) {
       allData.push(await t.data());
       t.dispose();
     }
-    if (allData.length < 2) throw new Error('模型输出数量不足: ' + allData.length);
 
-    const pFull = allData[1];  // policy_output（固定 index 1）
+    // 诊断日志：输出所有张量的 shape 和长度
+    console.log('[KataGo] 输出 shapes:', shapes.map((s,i)=>`[${i}]size=${s.sz},shape=${JSON.stringify(s.shape)}`).join(' | '));
+    console.log('[KataGo] 输出 lengths:', allData.map((d,i)=>`[${i}]len=${d.length}`).join(' | '));
 
-    // value head：softmax 前的 logit，取 index=3
+    if (allData.length < 1) throw new Error('模型无输出');
+
+    // ② 识别 value 输出（长度恰好 = 3 或 2）
+    let valueData = null;
+    for (const d of allData) {
+      if (d.length <= 4) { valueData = d; break; }
+    }
+
+    // ③ 识别 policy 输出
+    //    Policy = softmax：全部值 ≥ 0；样本前 100 个几乎无负值
+    //    Ownership = tanh：含明显负值
+    //    双头格式（724 元素）= 两个 policy head 拼在一起（channel-first）
+    const boardSq = M * M;  // 361
+    let pFull = null;
+
+    // 优先：找全非负且长度在 [300, 800] 的张量
+    for (const d of allData) {
+      if (d === valueData) continue;
+      const len = d.length;
+      if (len < 300 || len > 800) continue;
+      let negCnt = 0;
+      const sampleLen = Math.min(len, 150);
+      for (let j = 0; j < sampleLen; j++) if (d[j] < -0.001) negCnt++;
+      if (negCnt / sampleLen < 0.05) {     // < 5% 负值 → policy
+        pFull = d;
+        break;
+      }
+    }
+
+    // 备选：长度最接近 boardSq+1 的非 value 张量
+    if (!pFull) {
+      let bestDiff = Infinity;
+      for (const d of allData) {
+        if (d === valueData) continue;
+        const diff = Math.abs(d.length - (boardSq + 1));
+        if (diff < bestDiff) { bestDiff = diff; pFull = d; }
+      }
+    }
+
+    if (!pFull) throw new Error('未找到 policy 输出');
+
+    // ④ 双头格式处理：
+    //    如果 pFull.length ≈ 2×362（单头），取前半部分（channel-first 第 0 头）
+    const isTwoHead = pFull.length >= boardSq * 1.8;
+    // 判断是否 channel-last（交错）：取偶数位之和 vs 奇数位之和
+    // 对于 channel-first：前 362 个值为头 0，应全非负且和 ≈ 1
+    // 对于 channel-last：偶数位为头 0，应全非负且和 ≈ 1
+    let stride = 1;
+    if (isTwoHead) {
+      // 计算前 362 个值的和（channel-first 头 0）
+      let sumCF = 0;
+      const halfLen = Math.ceil(pFull.length / 2);
+      for (let j = 0; j < halfLen; j++) sumCF += pFull[j];
+      // 计算交错偶数位的和（channel-last 头 0）
+      let sumCL = 0;
+      for (let j = 0; j < pFull.length; j += 2) sumCL += pFull[j];
+      // 哪个更接近 1.0，哪个是正确的头
+      if (Math.abs(sumCL - 1) < Math.abs(sumCF - 1)) {
+        stride = 2;  // channel-last
+        console.log('[KataGo] 双头 channel-last 格式，stride=2');
+      } else {
+        stride = 1;  // channel-first
+        console.log('[KataGo] 双头 channel-first 格式，取前半部分');
+      }
+    }
+
+    // ⑤ 计算 winProb
     let winProb = null;
-    if (allData.length >= 4 && allData[3].length >= 2) {
-      const v = allData[3];
+    if (valueData && valueData.length >= 2) {
+      const v = valueData;
       const vmax = Math.max(...v);
       const exps = Array.from(v).map(x => Math.exp(x - vmax));
-      const sum  = exps.reduce((a, b) => a + b, 0);
-      // exps[0] = current player win prob（softmax 后）
-      winProb = exps[0] / sum * 2 - 1;  // 映射到 [-1, 1]
+      const sum  = exps.reduce((a,b) => a + b, 0);
+      winProb = exps[0] / sum * 2 - 1;
     }
-    console.log('[KataGo] policy len=', pFull.length, ' winProb=', winProb?.toFixed(3));
+    // 打印前 6 个 policy 值，帮助确认是否为概率分布（应全 ≥ 0 且较小）
+    const sample = Array.from(pFull.slice(0, 6)).map(x=>x.toFixed(4));
+    console.log('[KataGo] policy len=', pFull.length, 'isTwoHead=', isTwoHead, 'stride=', stride, 'sample=', sample, 'winProb=', winProb?.toFixed(3));
 
-    // 将 19×19 policy 映射回实际坐标（左上角布局）
+    // ⑥ 映射到实际棋盘坐标（左上角，无 offset）
     const policy = new Float32Array(N*N+1);
     for(let r=0;r<N;r++) for(let c=0;c<N;c++)
-      policy[r*N+c] = pFull[r*M+c];
-    policy[N*N] = pFull.length > M*M ? pFull[M*M] : -Infinity;
+      policy[r*N+c] = pFull[(r*M+c) * stride];
+    const passIdx = boardSq * stride;
+    policy[N*N] = passIdx < pFull.length ? pFull[passIdx] : -Infinity;
 
     return { policy, winProb };
   }
