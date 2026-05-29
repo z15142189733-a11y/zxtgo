@@ -1641,30 +1641,48 @@ class BrowserKataGoAI {
 
     const pFull = allData[policyIdx];
     const pShape = meta[policyIdx].shape;  // e.g. [1,2,362] or [1,362] or [1,361]
+    const boardSq = M * M;  // 361
 
-    // ③ 确定如何从 pFull 读当前玩家的 policy
-    //    shape=[1,2,362] → channel-first 双头，头0在前362个值，stride=1
-    //    shape=[1,362,2] → channel-last 双头，头0在偶数位，stride=2
-    //    shape=[1,362]   → 单头，stride=1
-    //    shape=[1,361]   → 单头无 pass，stride=1
+    // ③ 确定 stride 和 headOffset
+    //    shape=[1,2,362] → channel-first 双头
+    //      head0(idx 0..361)   = 黑棋 policy（白棋回合时被屏蔽为 -5000）
+    //      head1(idx 362..723) = 白棋 policy（白棋回合时有效）
+    //    → 通过比较两头的最大值自动选取有效头（有效头最大值 >> -5000）
+    //    shape=[1,362,2] → channel-last，stride=2
+    //    shape=[1,362] / [1,361] → 单头，headOffset=0，stride=1
     let stride = 1;
+    let headOffset = 0;  // 起始索引：0=头0，362=头1
+
     if (pShape && pShape.length >= 3) {
-      // 第二维是 channels
-      const channels = pShape[pShape.length - 2];
-      const positions = pShape[pShape.length - 1];
+      const channels  = pShape[pShape.length - 2];  // e.g. 2
+      const positions = pShape[pShape.length - 1];  // e.g. 362
+
       if (channels > 1 && positions === 362) {
-        // channel-first [batch, channels, positions]：头0直接在前 positions 个值
+        // channel-first 双头 [batch, channels, positions]
         stride = 1;
+        const half = positions;  // 362
+        // 比较两头最大值，自动选有效头
+        let max0 = -Infinity, max1 = -Infinity;
+        for (let j = 0;    j < half;            j++) if (pFull[j] > max0) max0 = pFull[j];
+        for (let j = half; j < pFull.length;    j++) if (pFull[j] > max1) max1 = pFull[j];
+        // 有效头的值远大于 -5000；若 head1 比 head0 高 100 以上则用 head1
+        headOffset = (max1 > max0 + 100) ? half : 0;
+        console.log('[KataGo] head0 max=', max0.toFixed(1), 'head1 max=', max1.toFixed(1),
+                    '→ using head', headOffset === 0 ? 0 : 1);
       } else if (positions > 1 && channels === 362) {
-        // channel-last [batch, positions, channels]：头0在每 channels 步的第0位
-        stride = positions;  // = channels in last dim
+        // channel-last [batch, positions, channels]
+        stride = positions;
+        headOffset = 0;
       }
     } else if (!pShape && pFull.length >= 700) {
-      // shape 不可用但 size≈724：假设 channel-first，stride=1
+      // shape 不可用：同样自动选头
       stride = 1;
+      const half = Math.floor(pFull.length / 2);
+      let max0 = -Infinity, max1 = -Infinity;
+      for (let j = 0;    j < half;         j++) if (pFull[j] > max0) max0 = pFull[j];
+      for (let j = half; j < pFull.length; j++) if (pFull[j] > max1) max1 = pFull[j];
+      headOffset = (max1 > max0 + 100) ? half : 0;
     }
-
-    const boardSq = M * M;  // 361
 
     // ④ 计算 winProb（从 value 张量的 softmax）
     let winProb = null;
@@ -1673,20 +1691,26 @@ class BrowserKataGoAI {
       const vmax = Math.max(...v);
       const exps = Array.from(v).map(x => Math.exp(x - vmax));
       const sum  = exps.reduce((a,b) => a + b, 0);
-      // exps[0] = current player win prob；映射到 [-1,1]
       winProb = exps[0] / sum * 2 - 1;
     }
 
-    const sample6 = Array.from(pFull.slice(0, 6)).map(x=>x.toFixed(3));
-    console.log('[KataGo] policyIdx=', policyIdx, 'len=', pFull.length, 'stride=', stride,
+    const sample6 = Array.from(pFull.slice(headOffset, headOffset + 6)).map(x=>x.toFixed(3));
+    console.log('[KataGo] policyIdx=', policyIdx, 'headOffset=', headOffset,
+                'len=', pFull.length, 'stride=', stride,
                 'sample=', sample6, 'winProb=', winProb?.toFixed(3));
 
     // ⑤ 映射到实际棋盘坐标（左上角，无 offset）
     const policy = new Float32Array(N*N+1);
     for(let r=0;r<N;r++) for(let c=0;c<N;c++)
-      policy[r*N+c] = pFull[(r*M+c) * stride];
-    const passIdx = boardSq * stride;
+      policy[r*N+c] = pFull[headOffset + (r*M+c) * stride];
+    const passIdx = headOffset + boardSq * stride;
     policy[N*N] = passIdx < pFull.length ? pFull[passIdx] : -Infinity;
+
+    // ── 调试：打印 policy 最高的前5个落点，确认是否合理 ──
+    // 正确的 KataGo policy 第一手应优先星位（如 (3,3)(3,15)(15,3)(15,15)）
+    const top5 = Array.from({length: N*N}, (_,i) => ({r:Math.floor(i/N), c:i%N, v:policy[i]}))
+      .sort((a,b) => b.v - a.v).slice(0, 5);
+    console.log('[KataGo] top5:', top5.map(m=>`(${m.r},${m.c})=${m.v.toFixed(2)}`).join(' | '));
 
     return { policy, winProb };
   }
