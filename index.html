@@ -4,7 +4,2637 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Z.X.T 围棋</title>
+<link rel="manifest" href="manifest.json"><!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Z.X.T 围棋</title>
 <link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ZXT围棋">
+<meta name="theme-color" content="#c9a84c">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0f0f1a;--panel:#1a1a2e;--accent:#c9a84c;--accent2:#7b68ee;
+  --board0:#dbb86a;--board1:#c9a84c;
+  --text:#e8e8f0;--text-dim:#7777aa;
+  --green:#4caf50;--red:#e53935;
+}
+body{background:var(--bg);color:var(--text);font-family:'PingFang SC','Microsoft YaHei','Segoe UI',system-ui,sans-serif;height:100dvh;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+
+/* ─── SCREENS ─── */
+.screen{display:none;flex-direction:column;align-items:center;justify-content:center;height:100dvh;height:100vh;padding:20px}
+.screen.active{display:flex}
+
+/* ─── MENU ─── */
+#menu-screen{background:radial-gradient(ellipse at 40% 40%,#1e1e40 0%,#0f0f1a 65%)}
+.logo{text-align:center;margin-bottom:44px;position:relative}
+.logo h1{font-size:3.2rem;font-weight:800;letter-spacing:4px;color:var(--accent);text-shadow:0 0 40px rgba(201,168,76,.3)}
+.logo-sub{color:var(--text-dim);font-size:.82rem;margin-top:8px;letter-spacing:6px}
+.logo-deco{display:flex;gap:6px;justify-content:center;margin-top:14px}
+.logo-deco span{width:10px;height:10px;border-radius:50%}
+.logo-deco span:nth-child(odd){background:radial-gradient(circle at 35% 35%,#555,#111)}
+.logo-deco span:nth-child(even){background:radial-gradient(circle at 35% 35%,#fff,#ccc)}
+.menu-btn{display:block;width:240px;padding:14px 0;margin:9px auto;border:none;border-radius:14px;font-size:1rem;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:2px}
+.btn-primary{background:linear-gradient(135deg,#c9a84c,#e8c060);color:#1a1000}
+.btn-secondary{background:var(--panel);color:var(--accent);border:1px solid rgba(201,168,76,.4)}
+.menu-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(201,168,76,.25)}
+
+/* ─── CHAPTER SELECT ─── */
+#chapter-screen{gap:16px}
+.screen-title{font-size:1.5rem;font-weight:800;color:var(--accent);margin-bottom:4px;text-align:center;letter-spacing:2px}
+.screen-sub{color:var(--text-dim);font-size:.82rem;margin-bottom:12px;text-align:center}
+.chapters-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;max-width:900px;width:100%}
+.chapter-card{background:var(--panel);border:1px solid #252545;border-radius:16px;padding:20px 14px;cursor:pointer;transition:all .2s;text-align:center}
+.chapter-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 24px rgba(201,168,76,.12)}
+.chapter-card.locked{opacity:.35;cursor:not-allowed;pointer-events:none}
+.chapter-icon{font-size:2rem;margin-bottom:8px}
+.chapter-name{font-weight:700;font-size:.95rem;color:var(--text)}
+.chapter-progress{font-size:.78rem;color:var(--accent);margin-top:6px}
+
+/* ─── LEVEL SELECT ─── */
+#level-screen{gap:20px}
+.levels-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:12px;max-width:680px;width:100%}
+.level-btn{aspect-ratio:1;border:2px solid #252545;border-radius:12px;background:var(--panel);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:all .2s;font-size:.78rem;color:var(--text-dim)}
+.level-btn .lnum{font-size:1.3rem;font-weight:800;color:var(--text)}
+.level-btn.completed{border-color:var(--green);background:rgba(76,175,80,.06)}
+.level-btn.completed .lnum{color:var(--green)}
+.level-btn.cur{border-color:var(--accent);background:rgba(201,168,76,.08)}
+.level-btn.cur .lnum{color:var(--accent)}
+.level-btn.locked{opacity:.3;cursor:not-allowed;pointer-events:none}
+.level-btn:not(.locked):hover{border-color:var(--accent);transform:scale(1.06)}
+
+/* ─── GAME SCREEN ─── */
+#game-screen{flex-direction:row;gap:0;padding:0;align-items:stretch;justify-content:flex-start;height:100dvh;height:100vh;overflow:hidden}
+.sidebar{width:280px;min-width:260px;background:var(--panel);display:flex;flex-direction:column;padding:18px 16px;gap:11px;overflow-y:auto;border-right:1px solid #22224a}
+.game-main{flex:1;display:flex;align-items:center;justify-content:center;background:var(--bg);position:relative}
+
+/* sidebar pieces */
+.s-tag{font-size:.7rem;color:var(--text-dim);letter-spacing:2px}
+.s-title{font-size:1.15rem;font-weight:800;color:var(--accent);line-height:1.3;margin-top:2px}
+.concept-box{background:#101028;border-left:3px solid var(--accent2);border-radius:0 8px 8px 0;padding:11px 12px;font-size:.82rem;line-height:1.65;color:#b0b0d8}
+.concept-label{font-size:.68rem;font-weight:700;color:var(--accent2);margin-bottom:5px;letter-spacing:1px}
+.goal-box{background:rgba(201,168,76,.07);border:1px solid rgba(201,168,76,.22);border-radius:10px;padding:11px}
+.goal-label{font-size:.68rem;color:var(--text-dim);letter-spacing:1px;margin-bottom:3px}
+.goal-text{font-size:.88rem;font-weight:700;color:var(--accent)}
+.hint-btn{background:none;border:1px dashed #333360;border-radius:8px;padding:7px 11px;color:var(--text-dim);cursor:pointer;font-size:.8rem;transition:all .2s;text-align:left;width:100%}
+.hint-btn:hover{border-color:var(--accent2);color:var(--accent2)}
+.hint-text{display:none;font-size:.8rem;color:#8888bb;margin-top:6px;line-height:1.6;padding:8px;background:#0c0c22;border-radius:6px}
+.hint-text.on{display:block}
+.status-bar{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:9px 12px;background:#0f0f28;border-radius:10px}
+.stone-ind{display:flex;align-items:center;gap:7px;font-size:.82rem}
+.sdot{width:15px;height:15px;border-radius:50%;display:inline-block;flex-shrink:0}
+.sdot.b{background:radial-gradient(circle at 35% 35%,#555,#111)}
+.sdot.w{background:radial-gradient(circle at 35% 35%,#fff,#ccc);box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.cap-count{font-size:.78rem;color:var(--text-dim)}
+.inf-toggle{display:flex;align-items:center;gap:8px;font-size:.8rem;color:var(--text-dim);cursor:pointer;padding:5px 8px;border-radius:7px;transition:background .2s}
+.inf-toggle:hover{background:#1a1a3a}
+.inf-toggle input{accent-color:var(--accent2)}
+.actions{display:flex;flex-direction:column;gap:7px;margin-top:auto}
+.act-btn{padding:9px;border:none;border-radius:10px;cursor:pointer;font-size:.85rem;font-weight:700;transition:all .2s;letter-spacing:1px}
+.btn-pass{background:#1e1e3a;color:var(--text-dim)}
+.btn-pass:hover{background:#2a2a4a;color:var(--text)}
+.btn-undo{background:#1e1e3a;color:var(--text-dim)}
+.btn-undo:hover{background:#2a2a4a;color:var(--text)}
+.btn-back{background:none;color:var(--text-dim);border:1px solid #252545;border-radius:8px;padding:8px;cursor:pointer;font-size:.8rem;transition:all .2s;letter-spacing:1px}
+.btn-back:hover{color:var(--text);border-color:#4a4a6a}
+.ai-thinking{font-size:.78rem;color:var(--accent2);padding:5px 0;min-height:20px}
+
+/* ─── CANVAS ─── */
+#board-canvas,#battle-canvas{border-radius:6px;cursor:crosshair;max-width:calc(100vh - 60px);max-height:calc(100vh - 60px)}
+
+/* ─── MODALS ─── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;align-items:center;justify-content:center}
+.modal-overlay.on{display:flex}
+.modal{background:var(--panel);border:1px solid #33335a;border-radius:20px;padding:32px;max-width:440px;width:90%;text-align:center}
+.modal-icon{font-size:2.8rem;margin-bottom:10px}
+.modal-title{font-size:1.4rem;font-weight:800;color:var(--accent);margin-bottom:14px;letter-spacing:1px}
+.modal-body{font-size:.88rem;line-height:1.75;color:#b0b0d8;margin-bottom:22px}
+.modal-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.mbtn{padding:11px 22px;border:none;border-radius:10px;font-size:.88rem;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:1px}
+.mbtn-p{background:linear-gradient(135deg,#c9a84c,#e8c060);color:#1a1000}
+.mbtn-s{background:#252545;color:var(--text)}
+.mbtn:hover{transform:translateY(-2px)}
+
+/* ─── BATTLE ─── */
+#battle-screen{flex-direction:row;gap:0;padding:0;align-items:stretch;justify-content:flex-start;height:100dvh;height:100vh;overflow:hidden}
+
+/* ─── DIFFICULTY ─── */
+#difficulty-screen{gap:18px}
+.diff-cards{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;max-width:680px}
+.diff-card{background:var(--panel);border:2px solid #252545;border-radius:16px;padding:22px 28px;cursor:pointer;transition:all .2s;text-align:center;min-width:170px}
+.diff-card:hover{transform:translateY(-3px);box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.diff-card.easy:hover{border-color:#4caf50}
+.diff-card.medium:hover{border-color:#ff9800}
+.diff-card.hard:hover{border-color:#e53935}
+.diff-icon{font-size:2rem;margin-bottom:8px}
+.diff-name{font-size:1.05rem;font-weight:800;letter-spacing:1px}
+.diff-desc{font-size:.78rem;color:var(--text-dim);margin-top:7px;line-height:1.5}
+/* 路数选择 */
+.size-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.size-btn{padding:10px 28px;border:2px solid #252545;border-radius:12px;background:var(--panel);color:var(--text-dim);font-size:.95rem;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:2px}
+.size-btn:hover{border-color:var(--accent);color:var(--accent)}
+.size-btn.active{border-color:var(--accent);background:rgba(201,168,76,.1);color:var(--accent)}
+.size-label{font-size:.8rem;color:var(--text-dim);text-align:center;margin-top:2px}
+.score-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #22224a;font-size:.82rem}
+.score-lbl{color:var(--text-dim)}
+.score-val{font-weight:700}
+
+/* ─── TSUMEGO ─── */
+#tsumego-chapter-screen{gap:16px}
+#tsumego-level-screen{gap:20px}
+#tsumego-game-screen{flex-direction:row;gap:0;padding:0;align-items:stretch;justify-content:flex-start;height:100dvh;height:100vh;overflow:hidden}
+.tsumego-tag{font-size:.68rem;color:#e57373;letter-spacing:2px;font-weight:700}
+.ts-goal-box{background:rgba(229,115,115,.08);border:1px solid rgba(229,115,115,.3);border-radius:10px;padding:11px}
+.ts-goal-label{font-size:.68rem;color:#e57373;letter-spacing:1px;margin-bottom:3px}
+.ts-goal-text{font-size:.88rem;font-weight:700;color:#ffcdd2}
+.ts-result{display:none;padding:10px 12px;border-radius:10px;font-size:.85rem;font-weight:700;text-align:center;margin-top:4px}
+.ts-result.correct{display:block;background:rgba(76,175,80,.15);color:#a5d6a7;border:1px solid rgba(76,175,80,.3)}
+.ts-result.wrong{display:block;background:rgba(229,115,115,.12);color:#ef9a9a;border:1px solid rgba(229,115,115,.25)}
+.ts-attempts{font-size:.78rem;color:var(--text-dim);margin-top:4px;text-align:center}
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#333360;border-radius:2px}
+
+/* ─── MOBILE LAYOUT ─── */
+@media(max-width:700px),(pointer:coarse){
+  #game-screen,#battle-screen,#tsumego-game-screen{flex-direction:column}
+  .sidebar{
+    width:100%!important;min-width:unset;
+    max-height:220px;border-right:none;
+    border-top:1px solid #22224a;
+    order:2;overflow-y:auto;
+    padding:10px 12px;gap:8px;
+  }
+  .game-main{order:1;flex:1;min-height:0}
+  /* bigger touch targets */
+  .act-btn{padding:12px;min-height:44px}
+  .btn-back{min-height:40px}
+  .mbtn{padding:13px 20px;min-height:44px}
+  .menu-btn{padding:16px 0;min-height:50px}
+  .hint-btn{min-height:40px;padding:9px 11px}
+  /* canvas fills board area */
+  #board-canvas,#battle-canvas,#tsumego-canvas{
+    max-width:calc(100vw - 8px)!important;
+    max-height:calc(100dvh - 240px)!important;
+    max-height:calc(100vh - 240px)!important;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- 主菜单 -->
+<div id="menu-screen" class="screen active">
+  <div class="logo">
+    <h1>Z.X.T 围棋</h1>
+    <div class="logo-deco">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+  </div>
+  <button class="menu-btn btn-primary" onclick="showScreen('chapter-screen')">关卡模式</button>
+  <button class="menu-btn btn-primary" style="background:linear-gradient(135deg,#c0392b,#e74c3c);color:#fff" onclick="showScreen('tsumego-chapter-screen')">死活题</button>
+  <button class="menu-btn btn-secondary" onclick="showScreen('difficulty-screen')">自由对战</button>
+</div>
+
+<!-- 章节选择 -->
+<div id="chapter-screen" class="screen">
+  <div class="screen-title">选择章节</div>
+  <div class="screen-sub">每章通过对局掌握一个核心概念，循序渐进</div>
+  <div class="chapters-grid" id="chapters-grid"></div>
+  <button class="btn-back" style="margin-top:14px" onclick="showScreen('menu-screen')">← 返回主菜单</button>
+</div>
+
+<!-- 关卡选择 -->
+<div id="level-screen" class="screen">
+  <div class="screen-title" id="lvl-screen-title"></div>
+  <div class="levels-grid" id="levels-grid"></div>
+  <button class="btn-back" style="margin-top:14px" onclick="showScreen('chapter-screen')">← 返回章节</button>
+</div>
+
+<!-- 关卡对局 -->
+<div id="game-screen" class="screen">
+  <div class="sidebar">
+    <div>
+      <div class="s-tag" id="s-tag">第一章 · 第1关</div>
+      <div class="s-title" id="s-title">落子</div>
+    </div>
+    <div class="concept-box">
+      <div class="concept-label">本关概念</div>
+      <div id="s-concept"></div>
+    </div>
+    <div class="goal-box">
+      <div class="goal-label">本关目标</div>
+      <div class="goal-text" id="s-goal"></div>
+    </div>
+    <div>
+      <button class="hint-btn" onclick="toggleHint()">💡 提示</button>
+      <div class="hint-text" id="s-hint"></div>
+    </div>
+    <div class="status-bar">
+      <div class="stone-ind">
+        <span class="sdot b" id="s-turn-dot"></span>
+        <span id="s-turn">你的回合（黑）</span>
+      </div>
+      <div class="cap-count" id="s-cap">提子 ●0 ○0</div>
+    </div>
+    <div class="ai-thinking" id="ai-think-label"></div>
+    <label class="inf-toggle">
+      <input type="checkbox" id="inf-toggle" onchange="toggleCampaignInf()"> 显示势力图
+    </label>
+    <div class="actions">
+      <button class="act-btn btn-undo" onclick="undoMove()">↩ 悔棋</button>
+      <button class="act-btn btn-pass" onclick="passMove()">⏭ 虚手</button>
+      <button class="btn-back" onclick="showScreen('chapter-screen')">← 返回章节</button>
+    </div>
+  </div>
+  <div class="game-main">
+    <canvas id="board-canvas"></canvas>
+  </div>
+</div>
+
+<!-- 死活题章节选择 -->
+<div id="tsumego-chapter-screen" class="screen">
+  <div class="screen-title">死活题</div>
+  <div class="screen-sub">从易到难，训练计算力与大局观</div>
+  <div class="chapters-grid" id="ts-chapters-grid"></div>
+  <button class="btn-back" style="margin-top:14px" onclick="showScreen('menu-screen')">← 返回主菜单</button>
+</div>
+
+<!-- 死活题关卡选择 -->
+<div id="tsumego-level-screen" class="screen">
+  <div class="screen-title" id="ts-lvl-title"></div>
+  <div class="levels-grid" id="ts-levels-grid"></div>
+  <button class="btn-back" style="margin-top:14px" onclick="showScreen('tsumego-chapter-screen')">← 返回章节</button>
+</div>
+
+<!-- 死活题游戏 -->
+<div id="tsumego-game-screen" class="screen">
+  <div class="sidebar">
+    <div>
+      <div class="tsumego-tag" id="ts-tag">死活题 · 初级 · 第1题</div>
+      <div class="s-title" id="ts-title">标题</div>
+    </div>
+    <div class="concept-box">
+      <div class="concept-label">题目说明</div>
+      <div id="ts-desc"></div>
+    </div>
+    <div class="ts-goal-box">
+      <div class="ts-goal-label">目标</div>
+      <div class="ts-goal-text" id="ts-goal"></div>
+    </div>
+    <div>
+      <button class="hint-btn" onclick="toggleTsHint()">💡 提示</button>
+      <div class="hint-text" id="ts-hint"></div>
+    </div>
+    <div class="ts-result" id="ts-result"></div>
+    <div class="ts-attempts" id="ts-attempts"></div>
+    <div class="actions">
+      <button class="act-btn btn-undo" onclick="tsumegoReset()">↩ 重置</button>
+      <button class="mbtn mbtn-p" id="ts-next-btn" style="display:none;margin-top:4px" onclick="tsNextLevel()">下一题 →</button>
+      <button class="btn-back" onclick="showScreen('tsumego-chapter-screen')">← 返回</button>
+    </div>
+  </div>
+  <div class="game-main">
+    <canvas id="tsumego-canvas"></canvas>
+  </div>
+</div>
+
+<!-- 难度选择 -->
+<div id="difficulty-screen" class="screen">
+  <div class="screen-title">自由对战设置</div>
+
+  <div style="width:100%;max-width:680px">
+    <div class="size-label" style="font-size:.9rem;font-weight:700;color:var(--text);margin-bottom:10px;text-align:center">选择棋盘路数</div>
+    <div class="size-row">
+      <button class="size-btn active" id="size-btn-9" onclick="selectSize(9)">9 路</button>
+      <button class="size-btn" id="size-btn-13" onclick="selectSize(13)">13 路</button>
+      <button class="size-btn" id="size-btn-19" onclick="selectSize(19)">19 路</button>
+    </div>
+    <div class="size-label" style="margin-top:6px" id="size-desc">9×9 · 入门标准棋盘，对局约10分钟</div>
+  </div>
+
+  <div class="size-label" style="font-size:.9rem;font-weight:700;color:var(--text);margin-top:4px;margin-bottom:2px;text-align:center">选择难度</div>
+  <div class="diff-cards">
+    <div class="diff-card easy" onclick="startBattle('easy')">
+      <div class="diff-icon">🌱</div>
+      <div class="diff-name">入门</div>
+      <div class="diff-desc">会提子、会防守<br>适合初学者练习</div>
+    </div>
+    <div class="diff-card medium" onclick="startBattle('medium')">
+      <div class="diff-icon">🌿</div>
+      <div class="diff-name">进阶</div>
+      <div class="diff-desc">19路: 神经网络AI<br>9/13路: MCTS</div>
+    </div>
+    <div class="diff-card hard" onclick="startBattle('hard')">
+      <div class="diff-icon">🌳</div>
+      <div class="diff-name">挑战</div>
+      <div class="diff-desc">19路: KataGo约2段<br>9/13路: 强力MCTS</div>
+    </div>
+  </div>
+  <button class="btn-back" style="margin-top:10px" onclick="showScreen('menu-screen')">← 返回主菜单</button>
+</div>
+
+<!-- 自由对战 -->
+<div id="battle-screen" class="screen">
+  <div class="sidebar">
+    <div>
+      <div class="s-tag" id="b-diff-tag">入门难度</div>
+      <div class="s-title">自由对战</div>
+    </div>
+    <div class="status-bar">
+      <div class="stone-ind">
+        <span class="sdot" id="b-turn-dot"></span>
+        <span id="b-turn">你的回合</span>
+      </div>
+    </div>
+    <div style="padding:10px;background:#0f0f28;border-radius:10px">
+      <div class="score-row"><span class="score-lbl">黑方提子</span><span class="score-val" id="b-cap">0</span></div>
+      <div class="score-row"><span class="score-lbl">白方提子</span><span class="score-val" id="w-cap">0</span></div>
+      <div class="score-row" style="border:none"><span class="score-lbl">步数</span><span class="score-val" id="b-moves">0</span></div>
+    </div>
+    <div class="ai-thinking" id="b-ai-think"></div>
+    <div id="b-ai-badge" style="font-size:.72rem;padding:4px 8px;border-radius:6px;background:#1a1a2e;color:#7777aa;margin-top:-4px;display:none"></div>
+    <label class="inf-toggle">
+      <input type="checkbox" id="b-inf-toggle" onchange="toggleBattleInf()"> 显示势力图
+    </label>
+    <div class="actions">
+      <button class="act-btn btn-pass" onclick="battlePass()">⏭ 虚手</button>
+      <button class="act-btn btn-undo" onclick="battleUndo()">↩ 悔棋</button>
+      <button class="act-btn" style="background:#1e0f0f;color:#e57373" onclick="resignGame()">🏳 认输</button>
+      <button class="btn-back" onclick="showScreen('difficulty-screen')">← 返回</button>
+    </div>
+  </div>
+  <div class="game-main">
+    <canvas id="battle-canvas"></canvas>
+  </div>
+</div>
+
+<!-- 过关弹窗 -->
+<div class="modal-overlay" id="complete-modal">
+  <div class="modal">
+    <div class="modal-icon" id="c-icon">🎉</div>
+    <div class="modal-title" id="c-title">过关！</div>
+    <div class="modal-body" id="c-body"></div>
+    <div class="modal-actions">
+      <button class="mbtn mbtn-p" id="next-btn">下一关 →</button>
+      <button class="mbtn mbtn-s" onclick="closeModal('complete-modal')">再玩一次</button>
+    </div>
+  </div>
+</div>
+
+<!-- 对局结束弹窗 -->
+<div class="modal-overlay" id="gameover-modal">
+  <div class="modal">
+    <div class="modal-icon" id="go-icon">🏁</div>
+    <div class="modal-title" id="go-title">对局结束</div>
+    <div class="modal-body" id="go-body"></div>
+    <div class="modal-actions">
+      <button class="mbtn mbtn-p" onclick="restartBattle()">再来一局</button>
+      <button class="mbtn mbtn-s" onclick="showScreen('difficulty-screen')">换难度</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// GAME ENGINE
+// ═══════════════════════════════════════════════════════
+class GoGame {
+  constructor(size) {
+    this.size = size;
+    this.board = Array(size).fill(null).map(() => Array(size).fill(0));
+    this.currentPlayer = 1;
+    this.captured = [0, 0];
+    this.koPoint = null;
+    this.history = [];
+    this.moveCount = 0;
+    this.consecutivePasses = 0;
+  }
+  clone() {
+    const g = new GoGame(this.size);
+    g.board = this.board.map(r => [...r]);
+    g.currentPlayer = this.currentPlayer;
+    g.captured = [...this.captured];
+    g.koPoint = this.koPoint ? [...this.koPoint] : null;
+    g.moveCount = this.moveCount;
+    g.consecutivePasses = this.consecutivePasses;
+    return g;
+  }
+  saveState() {
+    return {
+      board: this.board.map(r => [...r]),
+      currentPlayer: this.currentPlayer,
+      captured: [...this.captured],
+      koPoint: this.koPoint ? [...this.koPoint] : null,
+      moveCount: this.moveCount,
+      consecutivePasses: this.consecutivePasses
+    };
+  }
+  restoreState(s) {
+    this.board = s.board.map(r => [...r]);
+    this.currentPlayer = s.currentPlayer;
+    this.captured = [...s.captured];
+    this.koPoint = s.koPoint ? [...s.koPoint] : null;
+    this.moveCount = s.moveCount;
+    this.consecutivePasses = s.consecutivePasses;
+  }
+  inBounds(r, c) { return r >= 0 && r < this.size && c >= 0 && c < this.size; }
+  neighbors(r, c) {
+    return [[-1,0],[1,0],[0,-1],[0,1]].map(([dr,dc])=>[r+dr,c+dc]).filter(([nr,nc])=>this.inBounds(nr,nc));
+  }
+  getGroup(r, c) {
+    const color = this.board[r][c];
+    if (!color) return { stones: [], liberties: [] };
+    const visited = new Set(), stones = [], libSet = new Set(), stack = [[r, c]];
+    while (stack.length) {
+      const [cr, cc] = stack.pop();
+      const key = cr * this.size + cc;
+      if (visited.has(key)) continue;
+      visited.add(key); stones.push([cr, cc]);
+      for (const [nr, nc] of this.neighbors(cr, cc)) {
+        if (this.board[nr][nc] === 0) libSet.add(nr * this.size + nc);
+        else if (this.board[nr][nc] === color) stack.push([nr, nc]);
+      }
+    }
+    return { stones, liberties: [...libSet].map(k => [Math.floor(k/this.size), k%this.size]) };
+  }
+  isValidMove(r, c, color) {
+    if (!this.inBounds(r, c) || this.board[r][c] !== 0) return false;
+    if (this.koPoint && this.koPoint[0] === r && this.koPoint[1] === c) return false;
+    this.board[r][c] = color;
+    const opp = 3 - color;
+    let captures = 0;
+    for (const [nr, nc] of this.neighbors(r, c))
+      if (this.board[nr][nc] === opp && this.getGroup(nr, nc).liberties.length === 0) captures++;
+    const valid = this.getGroup(r, c).liberties.length > 0 || captures > 0;
+    this.board[r][c] = 0;
+    return valid;
+  }
+  placeStone(r, c) {
+    if (!this.isValidMove(r, c, this.currentPlayer)) return false;
+    this.history.push(this.saveState());
+    const color = this.currentPlayer, opp = 3 - color;
+    this.board[r][c] = color;
+    let captured = 0; const capturedPts = [];
+    for (const [nr, nc] of this.neighbors(r, c)) {
+      if (this.board[nr][nc] === opp) {
+        const g = this.getGroup(nr, nc);
+        if (g.liberties.length === 0) {
+          for (const [sr, sc] of g.stones) { this.board[sr][sc] = 0; capturedPts.push([sr, sc]); }
+          captured += g.stones.length;
+        }
+      }
+    }
+    if (color === 1) this.captured[0] += captured; else this.captured[1] += captured;
+    this.koPoint = null;
+    if (captured === 1 && capturedPts.length === 1) {
+      const mg = this.getGroup(r, c);
+      if (mg.stones.length === 1 && mg.liberties.length === 1) this.koPoint = capturedPts[0];
+    }
+    this.consecutivePasses = 0; this.moveCount++; this.currentPlayer = opp;
+    return true;
+  }
+  pass() {
+    this.history.push(this.saveState());
+    this.consecutivePasses++; this.currentPlayer = 3 - this.currentPlayer;
+    this.moveCount++; this.koPoint = null;
+  }
+  undo() {
+    if (!this.history.length) return false;
+    this.restoreState(this.history.pop()); return true;
+  }
+  calculateInfluence() {
+    const inf = Array(this.size).fill(null).map(() => Array(this.size).fill(0));
+    for (let r = 0; r < this.size; r++) for (let c = 0; c < this.size; c++) {
+      if (!this.board[r][c]) continue;
+      const sign = this.board[r][c] === 1 ? 1 : -1;
+      const visited = new Set(), queue = [[r, c, 1.0]];
+      while (queue.length) {
+        const [cr, cc, s] = queue.shift();
+        const k = cr * this.size + cc;
+        if (visited.has(k)) continue; visited.add(k);
+        if (this.board[cr][cc] !== 0 && !(cr===r && cc===c)) {
+          if (this.board[cr][cc] !== this.board[r][c]) continue;
+        }
+        inf[cr][cc] += sign * s;
+        if (s * 0.75 > 0.05) for (const [nr, nc] of this.neighbors(cr, cc)) {
+          const nk = nr * this.size + nc;
+          if (!visited.has(nk) && this.board[nr][nc] !== (3 - this.board[r][c]))
+            queue.push([nr, nc, s * 0.75]);
+        }
+      }
+    }
+    return inf;
+  }
+  estimateScore(komi = 6.5) {
+    const inf = this.calculateInfluence();
+    let b = 0, w = 0;
+    for (let r = 0; r < this.size; r++) for (let c = 0; c < this.size; c++) {
+      const v = inf[r][c];
+      if (this.board[r][c] === 1) b++;
+      else if (this.board[r][c] === 2) w++;
+      else if (v > 0.3) b++;
+      else if (v < -0.3) w++;
+    }
+    return { black: b + this.captured[0], white: w + this.captured[1] + komi };
+  }
+  getValidMoves(color) {
+    const m = [];
+    for (let r = 0; r < this.size; r++) for (let c = 0; c < this.size; c++)
+      if (this.isValidMove(r, c, color)) m.push([r, c]);
+    return m;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// AI ENGINE  —  三档真实差距
+//   easy   : 开局库 + 战术优先 + MCTS（9×9:1000 / 13×13:500 / 19×19:200）≈业余15-20级
+//   medium : 开局库 + 战术优先 + MCTS（9×9:5000 / 13×13:2200 / 19×19:500）≈业余8-12级
+//   hard   : 开局库 + 战术优先 + MCTS（9×9:12000/ 13×13:5000 / 19×19:1200）≈业余3-6级
+//            （19×19 进阶/挑战由 KataGo 神经网络接管，约业余1-2段）
+// 核心优化：rollout 不调用 getValidMoves()，
+//   改用「上一手相邻检测」O(4) 快速找提子/逃气，
+//   再随机采样 12 格，彻底消除 O(N²) 瓶颈。
+// ═══════════════════════════════════════════════════════
+class GoAI {
+  constructor(diff) { this.diff = diff; }
+
+  getBestMove(game, color) {
+    const allMoves = game.getValidMoves(color);
+    if (!allMoves.length) return null;
+
+    // ── 开局库（所有难度）──
+    const op = this._openingMove(game, color);
+    if (op) return op;
+
+    // ── 所有难度：先做即时战术判断，再 MCTS ──
+    const cap = this._findBestCapture(game, color, allMoves);
+    if (cap) return cap;
+
+    const esc = this._findEscape(game, color, allMoves);
+    if (esc) return esc;
+
+    const cands = this._getCandidates(game, color, allMoves);
+    // MCTS fallback：神经网络不可用时的兜底
+    // 13×19 大幅加强，与神经网络版本差距尽量缩小
+    const simTable = {
+      hard:   { 9: 12000, 13: 10000, 19: 4000 },
+      medium: { 9: 5000,  13: 4000,  19: 1500 },
+      easy:   { 9: 1000,  13: 500,   19: 200  },
+    };
+    const N = (simTable[this.diff] || {})[game.size] || 200;
+    return this._mcts(game, color, cands, N);
+  }
+
+  // ── 开局库：前几手走星位 ──
+  _openingMove(game, color) {
+    const tbl = {
+      9:  { max:3,  pts:[[2,2],[2,6],[6,2],[6,6],[4,4],[2,4],[4,2],[4,6],[6,4]] },
+      13: { max:5,  pts:[[3,3],[3,9],[9,3],[9,9],[6,6],[3,6],[6,3],[6,9],[9,6]] },
+      19: { max:7,  pts:[[3,3],[3,9],[3,15],[9,3],[9,9],[9,15],[15,3],[15,9],[15,15],[3,6],[6,3],[6,15],[15,6]] },
+    }[game.size];
+    if (!tbl || game.moveCount >= tbl.max) return null;
+    for (const [r,c] of this._shuffle(tbl.pts))
+      if (game.isValidMove(r, c, color)) return [r, c];
+    return null;
+  }
+
+  // ── 入门：启发式，不用 MCTS ──
+  _easyMove(game, color, moves) {
+    const cap = this._findBestCapture(game, color, moves);
+    if (cap) return cap;
+    if (Math.random() < 0.65) {
+      const esc = this._findEscape(game, color, moves);
+      if (esc) return esc;
+    }
+    if (Math.random() < 0.45) {
+      const atari = this._findAtari(game, color, moves);
+      if (atari) return atari;
+    }
+    // 安全的中心偏向随机
+    const center = (game.size - 1) / 2;
+    const safe = moves.filter(([r,c]) => {
+      const sim = game.clone(); sim.board[r][c] = color;
+      const g = sim.getGroup(r, c); return g && g.liberties.length >= 2;
+    });
+    const pool = safe.length ? safe : moves;
+    pool.sort(() => Math.random() - 0.5);
+    return pool.slice(0, Math.max(1, Math.ceil(pool.length * 0.35)))
+      .reduce((best, [r,c]) => {
+        const s = -(Math.abs(r-center)+Math.abs(c-center))*0.1 + Math.random()*0.6;
+        return s > best.s ? {m:[r,c],s} : best;
+      }, {m:pool[0], s:-Infinity}).m;
+  }
+
+  // ══════════════════════════════════════════════════════
+  // UCB1 + RAVE  Monte-Carlo Tree Search
+  // ══════════════════════════════════════════════════════
+  _mcts(game, color, cands, N) {
+    if (!cands.length) return null;
+    const n = cands.length;
+    const wins      = new Float64Array(n);
+    const plays     = new Float64Array(n);
+    const amafWins  = new Float64Array(n);
+    const amafPlays = new Float64Array(n);
+    const C = 1.414, RAVE_K = 300;
+
+    // move → candidate index（RAVE 需要）
+    const moveIdx = new Map();
+    cands.forEach(([r,c], i) => moveIdx.set(r * game.size + c, i));
+
+    for (let sim = 0; sim < N; sim++) {
+      // UCB1 + RAVE 选择
+      let bestIdx = 0, bestVal = -Infinity;
+      const logTotal = Math.log(sim + 1 + n);
+      for (let j = 0; j < n; j++) {
+        const p = plays[j], ap = amafPlays[j];
+        const q  = p  > 0 ? wins[j]     / p  : 0;
+        const aq = ap > 0 ? amafWins[j] / ap : 0;
+        const beta = Math.sqrt(RAVE_K / (3 * p + RAVE_K));
+        const combined = (1 - beta) * q + beta * aq;
+        const val = p === 0
+          ? 1e9 + Math.random()
+          : combined + C * Math.sqrt(logTotal / p);
+        if (val > bestVal) { bestVal = val; bestIdx = j; }
+      }
+
+      const [mr, mc] = cands[bestIdx];
+      const g = game.clone();
+      if (!g.placeStone(mr, mc)) { plays[bestIdx]++; continue; }
+
+      const { result, played } = this._rollout(g, color, [mr, mc]);
+      wins[bestIdx]  += result;
+      plays[bestIdx] += 1;
+
+      // RAVE 更新：把 rollout 中所有手的结果也记入对应候选
+      for (const [r, c] of played) {
+        const idx = moveIdx.get(r * game.size + c);
+        if (idx !== undefined) {
+          amafWins[idx]  += result;
+          amafPlays[idx] += 1;
+        }
+      }
+    }
+
+    // 按胜率选最优手
+    let best = cands[0], bestRate = -1;
+    for (let j = 0; j < n; j++) {
+      if (!plays[j]) continue;
+      const rate = wins[j] / plays[j];
+      if (rate > bestRate) { bestRate = rate; best = cands[j]; }
+    }
+    return best;
+  }
+
+  // ══════════════════════════════════════════════════════
+  // 快速 Rollout
+  // 关键：不调用 getValidMoves()，改用「上一手相邻」O(4)
+  // 检测打吃/提子机会，随机采样 12 格处理其它情况。
+  // ══════════════════════════════════════════════════════
+  _rollout(game, origColor, firstMove) {
+    const g = game.clone();
+    const played = [];
+    const maxDepth = g.size <= 9 ? 60 : g.size <= 13 ? 45 : 32;
+    let passes = 0, lastMove = firstMove;
+
+    for (let d = 0; d < maxDepth && passes < 2; d++) {
+      const mv = this._fastMove(g, lastMove);
+      if (mv && g.placeStone(mv[0], mv[1])) {
+        played.push(mv);
+        lastMove = mv;
+        passes = 0;
+      } else {
+        g.pass();
+        lastMove = null;
+        passes++;
+      }
+    }
+
+    const sc = g.estimateScore(6.5);
+    const result = origColor === 1
+      ? (sc.black > sc.white ? 1 : 0)
+      : (sc.white > sc.black ? 1 : 0);
+    return { result, played };
+  }
+
+  // 核心：快速选出一手 rollout 落子
+  _fastMove(game, lastMove) {
+    const color = game.currentPlayer, opp = 3 - color;
+    const s = game.size;
+
+    // ① 利用上一手：检查相邻棋串是否处于打吃
+    if (lastMove) {
+      const [lr, lc] = lastMove;
+      // 对方相邻棋串只剩 1 气 → 我方去提
+      for (const [nr, nc] of game.neighbors(lr, lc)) {
+        if (game.board[nr][nc] !== opp) continue;
+        const g = game.getGroup(nr, nc);
+        if (g.liberties.length === 1) {
+          const [cr, cc] = g.liberties[0];
+          if (!this._isEye(game, cr, cc, color) && game.isValidMove(cr, cc, color))
+            return [cr, cc];
+        }
+      }
+      // 己方相邻棋串只剩 1 气 → 逃跑
+      for (const [nr, nc] of game.neighbors(lr, lc)) {
+        if (game.board[nr][nc] !== color) continue;
+        const g = game.getGroup(nr, nc);
+        if (g.liberties.length === 1) {
+          const lib = g.liberties[0];
+          if (!this._isEye(game, lib[0], lib[1], color) && game.isValidMove(lib[0], lib[1], color))
+            return lib;
+        }
+      }
+    }
+
+    // ② 随机采样 12 格，跳过己方眼位，找到合法落点
+    for (let t = 0; t < 12; t++) {
+      const r = Math.floor(Math.random() * s);
+      const c = Math.floor(Math.random() * s);
+      if (game.board[r][c] !== 0) continue;
+      if (game.koPoint && game.koPoint[0] === r && game.koPoint[1] === c) continue;
+      if (this._isEye(game, r, c, color)) continue;
+      // 快速气检查：有空邻居即合法（避免调用完整 isValidMove）
+      let hasEmptyNb = false, wouldCap = false;
+      for (const [nr, nc] of game.neighbors(r, c)) {
+        if (game.board[nr][nc] === 0) { hasEmptyNb = true; break; }
+        if (game.board[nr][nc] === opp) {
+          const g = game.getGroup(nr, nc);
+          if (g.liberties.length <= 1) { wouldCap = true; break; }
+        }
+      }
+      if (hasEmptyNb || wouldCap) {
+        if (game.isValidMove(r, c, color)) return [r, c];
+      }
+    }
+    return null;
+  }
+
+  // 真眼判断：不填自己的眼
+  _isEye(game, r, c, color) {
+    if (game.board[r][c] !== 0) return false;
+    const nb = game.neighbors(r, c);
+    if (!nb.every(([nr, nc]) => game.board[nr][nc] === color)) return false;
+    const opp = 3 - color;
+    const diags = [[-1,-1],[-1,1],[1,-1],[1,1]]
+      .map(([dr,dc]) => [r+dr, c+dc]).filter(([nr,nc]) => game.inBounds(nr, nc));
+    return diags.filter(([nr,nc]) => game.board[nr][nc] === opp).length === 0;
+  }
+
+  // ══════════════════════════════════════════════════════
+  // 候选手生成 + 评分
+  // ══════════════════════════════════════════════════════
+  _getCandidates(game, color, allMoves) {
+    const maxN = this.diff === 'hard' ? 45 : 30;
+    const pool = game.size >= 13 ? this._focusedMoves(game, color, allMoves) : allMoves;
+    return pool.length <= maxN ? pool : this._scoreMoves(game, color, pool, maxN);
+  }
+
+  _scoreMoves(game, color, moves, maxN) {
+    const opp = 3 - color, center = (game.size - 1) / 2;
+    const scored = moves.map(([r, c]) => {
+      let score = Math.random() * 0.15;
+      // 邻近已有棋子的奖励
+      for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++) {
+        const nr = r+dr, nc = c+dc;
+        if (!game.inBounds(nr, nc) || !game.board[nr][nc]) continue;
+        const dist = Math.max(1, Math.abs(dr)+Math.abs(dc));
+        score += (game.board[nr][nc] === color ? 4 : 3) / dist;
+      }
+      // 开局中心/角偏好
+      if (game.moveCount < 12)
+        score += 2 / (Math.abs(r-center) + Math.abs(c-center) + 0.5);
+      // 战术快速评估
+      const sim = game.clone(); sim.board[r][c] = color;
+      let capSize = 0;
+      for (const [nr,nc] of sim.neighbors(r,c)) {
+        if (sim.board[nr][nc] !== opp) continue;
+        const g = sim.getGroup(nr,nc);
+        if (g.liberties.length === 0) capSize += g.stones.length * 10;
+        else if (g.liberties.length === 1) score += 5;
+      }
+      score += capSize;
+      // 自己落子后气太少 → 扣分
+      const myG = sim.getGroup(r, c);
+      if (myG) {
+        if (myG.liberties.length <= 1) score -= 9;
+        else if (myG.liberties.length === 2) score -= 1.5;
+      }
+      // 填眼 → 大扣分
+      if (this._isEye(game, r, c, color)) score -= 15;
+      return { m:[r,c], score };
+    });
+    scored.sort((a,b) => b.score - a.score);
+    return scored.slice(0, maxN).map(x => x.m);
+  }
+
+  _focusedMoves(game, color, allMoves) {
+    const focus = new Set(), s = game.size;
+    for (const [sr,sc] of this._starPts(s))
+      if (game.board[sr][sc] === 0) focus.add(sr*100+sc);
+    for (let r = 0; r < s; r++) for (let c = 0; c < s; c++) {
+      if (!game.board[r][c]) continue;
+      for (let dr = -3; dr <= 3; dr++) for (let dc = -3; dc <= 3; dc++) {
+        if (Math.abs(dr)+Math.abs(dc) > 4) continue;
+        const nr = r+dr, nc = c+dc;
+        if (nr>=0&&nr<s&&nc>=0&&nc<s&&game.board[nr][nc]===0) focus.add(nr*100+nc);
+      }
+    }
+    const result = [...focus].map(k=>[Math.floor(k/100),k%100])
+      .filter(([r,c])=>game.isValidMove(r,c,color));
+    if (result.length < 5) {
+      const ctr = Math.floor(s/2);
+      [[ctr,ctr],[ctr-2,ctr-2],[ctr+2,ctr+2],[ctr-2,ctr+2],[ctr+2,ctr-2]].forEach(([r,c])=>{
+        if (r>=0&&r<s&&c>=0&&c<s&&game.isValidMove(r,c,color)) result.push([r,c]);
+      });
+    }
+    return result.length ? result : allMoves.slice(0, 80);
+  }
+
+  _starPts(size) {
+    if (size===9)  return [[2,2],[2,4],[2,6],[4,2],[4,4],[4,6],[6,2],[6,4],[6,6]];
+    if (size===13) return [[3,3],[3,6],[3,9],[6,3],[6,6],[6,9],[9,3],[9,6],[9,9]];
+    if (size===19) return [[3,3],[3,9],[3,15],[9,3],[9,9],[9,15],[15,3],[15,9],[15,15]];
+    return [];
+  }
+
+  // ── 战术工具方法 ──
+  _findBestCapture(game, color, moves) {
+    const opp = 3 - color; let best = null, bestSz = 0;
+    for (const [r,c] of moves) {
+      const sim = game.clone(); sim.board[r][c] = color; let sz = 0;
+      for (const [nr,nc] of sim.neighbors(r,c)) {
+        if (sim.board[nr][nc] === opp) {
+          const g = sim.getGroup(nr,nc);
+          if (g.liberties.length === 0) sz += g.stones.length;
+        }
+      }
+      if (sz > bestSz) { bestSz = sz; best = [r,c]; }
+    }
+    return bestSz > 0 ? best : null;
+  }
+
+  _findEscape(game, color, moves) {
+    const seen = new Set();
+    for (let r = 0; r < game.size; r++) for (let c = 0; c < game.size; c++) {
+      if (game.board[r][c] !== color) continue;
+      const k = r*game.size+c; if (seen.has(k)) continue;
+      const g = game.getGroup(r,c);
+      g.stones.forEach(([sr,sc])=>seen.add(sr*game.size+sc));
+      if (g.liberties.length !== 1) continue;
+      for (const [mr,mc] of moves) {
+        const sim = game.clone(); if (!sim.placeStone(mr,mc)) continue;
+        const [sr,sc] = g.stones[0];
+        if (sim.board[sr][sc] === color) {
+          const ng = sim.getGroup(sr,sc);
+          if (ng && ng.liberties.length >= 2) return [mr,mc];
+        }
+      }
+    }
+    return null;
+  }
+
+  _findAtari(game, color, moves) {
+    const opp = 3 - color;
+    for (const [r,c] of this._shuffle(moves)) {
+      const sim = game.clone(); sim.board[r][c] = color;
+      for (const [nr,nc] of sim.neighbors(r,c))
+        if (sim.board[nr][nc]===opp && sim.getGroup(nr,nc).liberties.length===1) return [r,c];
+    }
+    return null;
+  }
+
+  _shuffle(a) {
+    const b=[...a];
+    for (let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}
+    return b;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// 关卡专用 ConceptAI（5章节概念驱动行为）
+// ═══════════════════════════════════════════════════════
+class ConceptAI extends GoAI {
+  constructor(chapterIdx, passivity = 0) {
+    super('easy');
+    this.chapterIdx = chapterIdx; // 0~4
+    this.passivity  = passivity;  // 0=正常，1=完全随机
+  }
+
+  getBestMove(game, color) {
+    const moves = game.getValidMoves(color);
+    if (!moves.length) return null;
+
+    // passivity决定随机比例
+    if (Math.random() < this.passivity) return moves[Math.floor(Math.random() * moves.length)];
+
+    switch (this.chapterIdx) {
+      // 第一章：棋盘与落子 → 完全随机，让玩家自由体验落子
+      case 0:
+        return moves[Math.floor(Math.random() * moves.length)];
+
+      // 第二章：气与提子 → 会提子，其余随机；让玩家学习气与提子
+      case 1: {
+        const cap = this._findBestCapture(game, color, moves);
+        if (cap && Math.random() < 0.7) return cap;
+        return moves[Math.floor(Math.random() * moves.length)];
+      }
+
+      // 第三章：眼与死活 → 会提子、尝试聚集自己的棋子形成眼；较被动
+      case 2: {
+        const cap = this._findBestCapture(game, color, moves);
+        if (cap && Math.random() < 0.5) return cap;
+        return this.groupClusterMove(game, color, moves);
+      }
+
+      // 第四章：吃子技巧 → 完整战术（提子→逃气→打吃），教玩家练习征子/网
+      case 3: {
+        const cap = this._findBestCapture(game, color, moves);
+        if (cap) return cap;
+        const esc = this._findEscape(game, color, moves);
+        if (esc && Math.random() < 0.8) return esc;
+        const atari = this._findAtari(game, color, moves);
+        if (atari && Math.random() < 0.65) return atari;
+        const ctr = (game.size-1)/2;
+        return moves.map(([r,c])=>({m:[r,c],s:-(Math.abs(r-ctr)+Math.abs(c-ctr))*0.08+Math.random()*0.5})).sort((a,b)=>b.s-a.s)[0].m;
+      }
+
+      // 第五章：势与领地 → 根据势力分布争地，有一定计算能力
+      case 4: {
+        const cap = this._findBestCapture(game, color, moves);
+        if (cap) return cap;
+        const esc = this._findEscape(game, color, moves);
+        if (esc) return esc;
+        const atari = this._findAtari(game, color, moves);
+        if (atari && Math.random() < 0.5) return atari;
+        return this.territoryMove(game, color, moves);
+      }
+
+      default:
+        return moves[Math.floor(Math.random() * moves.length)];
+    }
+  }
+
+  // 聚集落子：优先落在自己棋子附近，促进棋串形成（眼章节）
+  groupClusterMove(game, color, moves) {
+    const near = moves.filter(([r, c]) =>
+      game.neighbors(r, c).some(([nr, nc]) => game.board[nr][nc] === color)
+    );
+    const pool = near.length ? near : moves;
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  // 势力落子：在势力薄弱区域落子争地（势章节）
+  territoryMove(game, color, moves) {
+    const inf = game.calculateInfluence();
+    const opp = 3 - color;
+    const scored = moves.map(([r, c]) => {
+      // 黑方(1)喜欢蓝色(inf>0)区域附近争夺，白方(2)喜欢红色(inf<0)
+      const v = color === 1 ? -inf[r][c] : inf[r][c];
+      return { m: [r, c], score: v + Math.random() * 0.4 };
+    });
+    scored.sort((a, b) => b.score - a.score);
+    return scored[0].m;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDERER
+// ═══════════════════════════════════════════════════════
+class BoardRenderer {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.showInfluence = false;
+    this.highlights = [];
+    this.lastMove = null;
+    this.hover = null;
+    this.hoverColor = 1;
+  }
+  setup(size) {
+    this.size = size;
+    const dpr = window.devicePixelRatio || 1;
+    const isMobile = window.innerWidth <= 700 || window.matchMedia('(pointer:coarse)').matches;
+    const maxPx = isMobile
+      ? Math.min(window.innerWidth - 8, window.innerHeight - 240, 600)
+      : Math.min(window.innerWidth - 300, window.innerHeight - 50, 600);
+    const px = Math.max(220, maxPx);
+    this.pad = Math.round(px / (size + 1.5));
+    this.cell = Math.round((px - this.pad * 2) / (size - 1));
+    const total = this.pad * 2 + this.cell * (size - 1);
+    this.canvas.style.width = total + 'px';
+    this.canvas.style.height = total + 'px';
+    this.canvas.width = total * dpr;
+    this.canvas.height = total * dpr;
+    this.ctx.scale(dpr, dpr);
+    this.sr = this.cell * 0.465;
+    this._css = total; // CSS size for coordinate calc
+  }
+  pt(r, c) { return { x: this.pad + c*this.cell, y: this.pad + r*this.cell }; }
+
+  draw(game) {
+    const ctx = this.ctx, s = this.size, W = this._css;
+    ctx.clearRect(0, 0, W, W);
+
+    // ── 棋盘底色（干净平面，类 goproblems.com）
+    ctx.fillStyle = '#DCB468';
+    ctx.fillRect(0, 0, W, W);
+    // 轻微内阴影边框
+    ctx.strokeStyle = '#8B6914'; ctx.lineWidth = 2;
+    ctx.strokeRect(1, 1, W-2, W-2);
+
+    // ── 势力图（落在格线下方）
+    if (this.showInfluence) {
+      const inf = game.calculateInfluence();
+      for (let r = 0; r < s; r++) for (let c = 0; c < s; c++) {
+        const v = inf[r][c]; if (Math.abs(v) < 0.1) continue;
+        const {x,y} = this.pt(r,c);
+        const alpha = Math.min(Math.abs(v)*0.38, 0.55);
+        const gr = ctx.createRadialGradient(x,y,0,x,y,this.cell*.62);
+        if (v > 0) { gr.addColorStop(0,`rgba(30,60,200,${alpha})`); gr.addColorStop(1,'rgba(30,60,200,0)'); }
+        else { gr.addColorStop(0,`rgba(210,40,40,${alpha})`); gr.addColorStop(1,'rgba(210,40,40,0)'); }
+        ctx.fillStyle = gr;
+        ctx.beginPath(); ctx.arc(x,y,this.cell*.62,0,Math.PI*2); ctx.fill();
+      }
+    }
+
+    // ── 格线
+    ctx.strokeStyle = '#5a3200'; ctx.lineWidth = 1;
+    for (let i = 0; i < s; i++) {
+      const {x:x0,y:y0}=this.pt(i,0), {x:x1}=this.pt(i,s-1);
+      ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y0); ctx.stroke();
+      const {x:xa,y:ya}=this.pt(0,i), {y:yb}=this.pt(s-1,i);
+      ctx.beginPath(); ctx.moveTo(xa,ya); ctx.lineTo(xa,yb); ctx.stroke();
+    }
+
+    // ── 星位（实心圆点）
+    ctx.fillStyle = '#3a1e00';
+    for (const [sr,sc] of this.starPoints(s)) {
+      const {x,y} = this.pt(sr,sc);
+      ctx.beginPath(); ctx.arc(x,y,Math.max(3, this.cell*.1),0,Math.PI*2); ctx.fill();
+    }
+
+    // ── 高亮提示
+    for (const {r,c,type} of this.highlights) {
+      const {x,y} = this.pt(r,c);
+      if (type === 'lib') {
+        ctx.fillStyle = 'rgba(60,180,255,.32)';
+        ctx.beginPath(); ctx.arc(x,y,this.sr*.6,0,Math.PI*2); ctx.fill();
+      } else if (type === 'atari') {
+        ctx.strokeStyle = 'rgba(230,50,50,.9)'; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.arc(x,y,this.sr*.85,0,Math.PI*2); ctx.stroke();
+      } else if (type === 'target') {
+        ctx.strokeStyle = 'rgba(50,220,90,.95)'; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.arc(x,y,this.sr*.85,0,Math.PI*2); ctx.stroke();
+      }
+    }
+
+    // ── 悬停预览
+    if (this.hover && game.board[this.hover.r][this.hover.c] === 0) {
+      const {x,y} = this.pt(this.hover.r,this.hover.c);
+      ctx.globalAlpha = 0.42;
+      this.drawStone(ctx,x,y,this.hoverColor);
+      ctx.globalAlpha = 1;
+    }
+
+    // ── 棋子
+    for (let r = 0; r < s; r++) for (let c = 0; c < s; c++) {
+      if (!game.board[r][c]) continue;
+      const {x,y} = this.pt(r,c); this.drawStone(ctx,x,y,game.board[r][c]);
+    }
+
+    // ── 最后一手标记
+    if (this.lastMove) {
+      const [lr,lc] = this.lastMove;
+      if (game.board[lr][lc]) {
+        const {x,y} = this.pt(lr,lc);
+        const col = game.board[lr][lc];
+        ctx.strokeStyle = col===1 ? 'rgba(255,255,255,.9)' : 'rgba(0,0,0,.7)';
+        ctx.lineWidth = 1.5;
+        const mr = Math.max(2, this.sr*.28);
+        ctx.beginPath(); ctx.arc(x,y,mr,0,Math.PI*2); ctx.stroke();
+      }
+    }
+  }
+
+  drawStone(ctx, x, y, color) {
+    const r = this.sr;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2);
+    if (color === 1) {
+      // 黑子：深色基底 + 左上反光
+      const g = ctx.createRadialGradient(x-r*.3, y-r*.3, r*.02, x+r*.1, y+r*.1, r*1.1);
+      g.addColorStop(0, '#686868');
+      g.addColorStop(0.25, '#1c1c1c');
+      g.addColorStop(1, '#050505');
+      ctx.fillStyle = g; ctx.fill();
+      // 左上高光点
+      const hl = ctx.createRadialGradient(x-r*.32, y-r*.35, 0, x-r*.22, y-r*.25, r*.42);
+      hl.addColorStop(0, 'rgba(255,255,255,.32)');
+      hl.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = hl; ctx.fill();
+    } else {
+      // 白子：轻阴影 + 左上高光
+      ctx.shadowColor = 'rgba(0,0,0,.45)';
+      ctx.shadowBlur = Math.max(3, r*.18);
+      ctx.shadowOffsetX = r*.12; ctx.shadowOffsetY = r*.14;
+      const g = ctx.createRadialGradient(x-r*.28, y-r*.3, r*.02, x+r*.08, y+r*.08, r*1.05);
+      g.addColorStop(0, '#ffffff');
+      g.addColorStop(0.55, '#eeebe4');
+      g.addColorStop(1, '#d0c8b8');
+      ctx.fillStyle = g; ctx.fill();
+      ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
+      // 左上高光
+      const hl = ctx.createRadialGradient(x-r*.3, y-r*.34, 0, x-r*.2, y-r*.22, r*.4);
+      hl.addColorStop(0, 'rgba(255,255,255,.7)');
+      hl.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = hl;
+      ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+    }
+  }
+
+  starPoints(size) {
+    if (size===9) return [[2,2],[2,4],[2,6],[4,2],[4,4],[4,6],[6,2],[6,4],[6,6]];
+    if (size===13) return [[3,3],[3,9],[6,6],[9,3],[9,9]];
+    if (size===19) return [[3,3],[3,9],[3,15],[9,3],[9,9],[9,15],[15,3],[15,9],[15,15]];
+    if (size===5) return [[2,2]]; return [];
+  }
+
+  getIntersection(cx, cy) {
+    const rect = this.canvas.getBoundingClientRect();
+    // Use CSS pixel coordinates (canvas is scaled by dpr but style size is CSS px)
+    const x = (cx - rect.left) * (this._css / rect.width);
+    const y = (cy - rect.top)  * (this._css / rect.height);
+    const c = Math.round((x - this.pad) / this.cell);
+    const r = Math.round((y - this.pad) / this.cell);
+    if (r < 0 || r >= this.size || c < 0 || c >= this.size) return null;
+    return [r, c];
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// 章节与关卡数据
+// ═══════════════════════════════════════════════════════
+const CHAPTERS = [
+  { id:0, name:'棋盘与落子', icon:'⬛', levels:[0,1,2] },
+  { id:1, name:'气与提子',   icon:'💨', levels:[3,4,5] },
+  { id:2, name:'眼与死活',   icon:'👁️', levels:[6,7,8] },
+  { id:3, name:'吃子技巧',   icon:'⚔️', levels:[9,10,11] },
+  { id:4, name:'势与领地',   icon:'🌊', levels:[12,13,14] }
+];
+
+// aiPassivity: 1=完全随机，0=正常easy AI
+// vsAI: 对局中AI会下棋
+// goal.type: place_any / capture / atari_opp / make_eye / make_eyes / territory / influence_demo / full_game
+const LEVELS = [
+  // ─── 第一章：棋盘与落子 ───
+  {
+    id:0, chapterIdx:0, boardSize:9, playerColor:1, aiPassivity:1.0,
+    title:'落子',
+    concept:'围棋在纵横线的交叉点上落子，黑方先行，双方轮流。棋子落下后不能移动。',
+    goal:{ type:'place_any', count:3, text:'在棋盘上落3枚黑子' },
+    hint:'点击棋盘任意交叉点落下黑子，AI会随机应对。',
+    completion:'很好！围棋棋子落在交叉点上，而非格子中间。黑白轮流落子，这是围棋的基础。',
+    setup:[]
+  },
+  {
+    id:1, chapterIdx:0, boardSize:9, playerColor:1, aiPassivity:1.0,
+    title:'认识"气"',
+    concept:'"气"是棋子紧邻的空交叉点数量。棋子的气被全部占据时即被提走。点击棋子可查看它的气。',
+    goal:{ type:'place_any', count:5, text:'落子并点击棋子，观察气的变化' },
+    hint:'边上的棋子只有3气，角上只有2气；越靠中央气越多，越难被提走。',
+    completion:'理解了！棋子的气决定生死。气越多越安全；紧邻对手的棋子时，气会减少。',
+    setup:[],
+    showLiberties:true
+  },
+  {
+    id:2, chapterIdx:0, boardSize:9, playerColor:1, aiPassivity:0.85,
+    title:'第一次提子',
+    concept:'当对方棋子的最后一口气被你落子填满时，该棋子即被"提走"，从棋盘移除。',
+    goal:{ type:'capture', count:1, text:'提走白方至少1颗棋子' },
+    hint:'先将白子的气逐步封住（打吃），再落子于最后一口气处，即可提走！',
+    completion:'完美！你完成了第一次提子。被提走的棋子称为"死子"，将计入你的提子数。',
+    setup:[]
+  },
+
+  // ─── 第二章：气与提子 ───
+  {
+    id:3, chapterIdx:1, boardSize:9, playerColor:1, aiPassivity:0.7,
+    title:'棋串的气',
+    concept:'相连的同色棋子构成"棋串"，共享所有气。提走一串棋子须封住整串的全部气。',
+    goal:{ type:'capture', count:3, text:'提走3颗以上相连的白子' },
+    hint:'先围住一群白子，再封住它们共同的最后一口气，整串一起消失！',
+    completion:'出色！整串棋子同生共死。棋串越大越难被提，但被提时失去的更多！',
+    setup:[]
+  },
+  {
+    id:4, chapterIdx:1, boardSize:9, playerColor:1, aiPassivity:0.6,
+    title:'"打吃"',
+    concept:'当棋串只剩一口气时，称为"打吃"。被打吃的棋子下一步即面临被提的威胁。',
+    goal:{ type:'atari_opp', count:2, text:'让白棋至少2次陷入"打吃"状态' },
+    hint:'落子让白棋某串只剩一口气，即完成一次打吃。AI会试图逃跑！',
+    completion:'"打吃"是攻击的信号。当你的棋子被打吃时，要及时逃跑或寻找对策！',
+    setup:[]
+  },
+  {
+    id:5, chapterIdx:1, boardSize:9, playerColor:1, aiPassivity:0.55,
+    title:'禁入点与劫',
+    concept:'自填最后一口气（自杀）是禁止的，除非同时提走对方棋子。"劫"是特殊的禁止重复局面规则。',
+    goal:{ type:'capture', count:2, text:'在避免违规的情况下提走2颗以上白子' },
+    hint:'下棋时注意不要走"禁入点"（落子后自己无气且无法提对方），这样的位置会被拒绝。',
+    completion:'很好！禁入点保护了棋子不被"自杀"。劫规则防止双方无休止地互提，是围棋规则的精妙之处。',
+    setup:[]
+  },
+
+  // ─── 第三章：眼与死活 ───
+  {
+    id:6, chapterIdx:2, boardSize:9, playerColor:1, aiPassivity:0.5,
+    title:'什么是"眼"',
+    concept:'"眼"是棋串内部被自己围住的空点，对方不能合法落子于此（否则自杀）。有眼的棋串更安全。',
+    goal:{ type:'make_eye', count:1, text:'围出至少1个眼（被黑子包围的独立空点）' },
+    hint:'用黑子将一个空点完全包围，使得白方无法落子于此即可。',
+    completion:'太好了！你围出了眼。有眼的棋串对方无法直接攻入，这是围棋"死活"的基础！',
+    setup:[]
+  },
+  {
+    id:7, chapterIdx:2, boardSize:9, playerColor:1, aiPassivity:0.4,
+    title:'两眼活棋',
+    concept:'拥有两个真眼的棋串永远无法被提走——对方填任何一个眼都是自杀，所以棋串永远活着。',
+    goal:{ type:'make_eyes', count:2, text:'让黑棋某个棋串拥有2个真眼' },
+    hint:'在棋串内部留下两个分开的空点，分别被黑子包围。两眼活棋永远不会被提！',
+    completion:'太棒了！"两眼活棋"是围棋最核心的生存法则。只要有两个真眼，任何力量都无法消灭！',
+    setup:[]
+  },
+  {
+    id:8, chapterIdx:2, boardSize:9, playerColor:1, aiPassivity:0.35,
+    title:'假眼',
+    concept:'"假眼"看起来像眼，实际上可以被对方攻破——因为包围它的棋子并非全部"实连"，存在对角缺陷。',
+    goal:{ type:'make_eyes', count:2, text:'做出2个真眼（注意避免假眼）' },
+    hint:'真眼的每个边角都要被自己的棋子紧密包围。如果某个角是对方的棋子，那就是假眼！',
+    completion:'识别假眼是高手必备的技能！真眼由棋子"实连"围成，假眼不能救命。',
+    setup:[]
+  },
+
+  // ─── 第四章：吃子技巧 ───
+  {
+    id:9, chapterIdx:3, boardSize:9, playerColor:1, aiPassivity:0.3,
+    title:'征子',
+    concept:'"征子"是最经典的吃子手段：被追棋子走Z字形，但每步都在打吃中，无路可逃，最终被提走。',
+    goal:{ type:'capture', count:3, text:'用征子手段累计提走3颗棋子' },
+    hint:'当白棋逃跑时，你每步都落在它前方打吃，让它无路可逃，撞上边界即被提！',
+    completion:'征子成功！注意：征子路上如有对方棋子，征子可能失败——这叫做"征子关联"。',
+    setup:[]
+  },
+  {
+    id:10, chapterIdx:3, boardSize:9, playerColor:1, aiPassivity:0.25,
+    title:'罗（网）',
+    concept:'"罗"是提前在逃跑路线上落子，让对方棋子无论往哪边逃都走不脱，形如天网。',
+    goal:{ type:'capture', count:2, text:'用罗/网手段提走2颗白子' },
+    hint:'不要直接打吃，而是在白棋两个逃跑方向的前方提前落子，截断出路，再围杀！',
+    completion:'漂亮的网！罗比征子需要更多预判和计算，是更高级的吃子手段。',
+    setup:[]
+  },
+  {
+    id:11, chapterIdx:3, boardSize:9, playerColor:1, aiPassivity:0.2,
+    title:'扑与接不归',
+    concept:'"扑"是主动送入一子，对方提走后，形成对方大龙只剩一气反被提的局面——以小换大。',
+    goal:{ type:'capture', count:4, text:'用扑/牺牲手段一次性提走4颗以上白子' },
+    hint:'试试"送吃"一颗棋子到白棋内部——对方提走后，白棋反而失去了最后一口气！',
+    completion:'绝妙的扑！以小换大是围棋中高级的战术思想，牺牲一子赢得大局。',
+    setup:[]
+  },
+
+  // ─── 第五章：势与领地 ───
+  {
+    id:12, chapterIdx:4, boardSize:9, playerColor:1, aiPassivity:0.3,
+    title:'认识势力',
+    concept:'"势"（势力）是棋子对棋盘区域的控制力。打开势力图，蓝色代表黑方势力，金色代表白方势力。',
+    goal:{ type:'influence_demo', text:'开启势力图，落8手棋，感受势力变化' },
+    hint:'打开左侧"显示势力图"，落子后观察蓝色（黑方）和金色（白方）势力的分布和消长。',
+    completion:'你理解了围棋的"势"！棋子辐射势力影响周围区域，强大的势力是围地的基础。',
+    setup:[], forceInfluence:true
+  },
+  {
+    id:13, chapterIdx:4, boardSize:9, playerColor:1, aiPassivity:0.25,
+    title:'围地',
+    concept:'围棋的胜负由"地"决定——终局时谁围住的空点更多谁赢。角→边→中央是围地效率的顺序。',
+    goal:{ type:'territory', minTerritory:10, text:'围住至少10个空点作为你的领地' },
+    hint:'先抢角地！角有两条边界作为天然屏障，围地效率最高。然后延伸至边再向中央发展。',
+    completion:'围地成功！你掌握了围棋最基本的目标。角→边→中央，永远记住这个顺序！',
+    setup:[]
+  },
+  {
+    id:14, chapterIdx:4, boardSize:9, playerColor:1, aiPassivity:0.1,
+    title:'综合对局',
+    concept:'恭喜你学完全部基础！现在与AI进行一局完整的9路围棋，运用你学到的一切技巧。两次连续虚手后对局结束。',
+    goal:{ type:'full_game', text:'完成一局完整的9路围棋对局' },
+    hint:'综合运用：抢角、围地、做活、提子。两次虚手即结束，系统自动判断胜负。',
+    completion:'🎊 恭喜你完成了XT围棋入门课程！你已掌握围棋规则和基本技巧。去自由对战模式挑战更强的AI吧！',
+    setup:[]
+  }
+];
+
+// ═══════════════════════════════════════════════════════
+// GAME STATE
+// ═══════════════════════════════════════════════════════
+let campGame = null, campRenderer = null, campLevel = null;
+let battGame = null, battRenderer = null;
+let battleDiff = 'easy', battleSize = 9, battleAI = null;
+let aiThinking = false;
+let battleMoveHistory = [];  // [{color:'B'|'W', pos:'D4'|'pass'}]
+
+// ─── GTP 坐标转换（列字母跳过 I）────────────────────────
+const _GTP_COLS = 'ABCDEFGHJKLMNOPQRST';
+function toGTP(row, col, boardSize) {
+  return _GTP_COLS[col] + (boardSize - row);
+}
+function fromGTP(gtp, boardSize) {
+  const col = _GTP_COLS.indexOf(gtp[0].toUpperCase());
+  const row = boardSize - parseInt(gtp.slice(1));
+  return [row, col];
+}
+
+// AI 认输标记（区别于 pass/null）
+const AI_RESIGN = Symbol('resign');
+
+// ═══════════════════════════════════════════════════════
+// BrowserKataGoAI — TF.js 浏览器端神经网络 AI
+// 加载 KataGo b10c128 模型，约业余 2 段棋力
+// 完全在浏览器本地运行，不依赖任何服务器
+// ═══════════════════════════════════════════════════════
+class BrowserKataGoAI {
+  constructor(diff, fallback) {
+    this.diff     = diff;
+    this.fallback = fallback;
+    this.model       = null;
+    this.tf          = null;
+    this.modelReady  = false;
+    this.modelLoading= false;
+    this.modelFailed = false;
+    this.modelError  = null;
+    this._resignConsec = 0;
+  }
+
+  // ── TF.js ────────────────────────────────────────────
+  async _loadTF() {
+    if (window.tf) { this.tf = window.tf; return; }
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.15.0/dist/tf.min.js';
+      s.onload = resolve;
+      s.onerror = () => reject(new Error('TF.js 加载失败'));
+      document.head.appendChild(s);
+    });
+    this.tf = window.tf;
+  }
+
+  // ── 加载模型 ─────────────────────────────────────────
+  // 依次尝试多个 CDN 源，任一成功即停止
+  async _ensureModel() {
+    if (this.modelReady)  return true;
+    if (this.modelFailed) return false;
+    if (this.modelLoading) {
+      while (this.modelLoading) await new Promise(r => setTimeout(r, 80));
+      return this.modelReady;
+    }
+    this.modelLoading = true;
+    try {
+      await this._loadTF();
+      const tf = this.tf;
+      const IDB  = 'indexeddb://katago-b10c128-v5';
+      const BASE = 'b10c128-s1141046784-d204142634';
+      // 多个备用源，按可用性排序
+      const URLS = [
+        `https://raw.githubusercontent.com/maksimKorzh/kata-model-js/main/model/${BASE}/model.json`,
+        `https://cdn.jsdelivr.net/gh/maksimKorzh/kata-model-js@main/model/${BASE}/model.json`,
+        `https://ghproxy.com/https://raw.githubusercontent.com/maksimKorzh/kata-model-js/main/model/${BASE}/model.json`,
+      ];
+
+      // 1. 尝试从 IndexedDB 缓存加载
+      let cached = false;
+      try {
+        this.model = await tf.loadGraphModel(IDB);
+        cached = true;
+        console.log('[KataGo] 从缓存加载成功');
+      } catch(_) {}
+
+      // 2. 缓存未命中，逐一尝试远程 URL
+      if (!cached) {
+        let lastErr = null;
+        for (const url of URLS) {
+          try {
+            console.log('[KataGo] 尝试:', url);
+            // 先检测 model.json 是否可达（超时 8 秒）
+            const probe = await Promise.race([
+              fetch(url, { method: 'HEAD' }),
+              new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000)),
+            ]);
+            if (!probe.ok) { console.warn('[KataGo] HEAD失败:', probe.status, url); continue; }
+            this.model = await tf.loadGraphModel(url);
+            try { await this.model.save(IDB); } catch(_) {}
+            console.log('[KataGo] 从远程加载成功:', url);
+            break;
+          } catch(e) {
+            lastErr = e;
+            console.warn('[KataGo] 源失败:', url, e.message);
+          }
+        }
+        if (!this.model) throw lastErr || new Error('所有模型源均不可用');
+      }
+
+      console.log('KataGo 输入:', (this.model.inputs||[]).map(x=>x.name+' '+JSON.stringify(x.shape)));
+      console.log('KataGo 输出:', (this.model.outputs||[]).map(x=>x.name+' '+JSON.stringify(x.shape)));
+
+      this.modelReady = true;
+      return true;
+    } catch(e) {
+      this.modelError = e.message;
+      console.error('KataGo 加载失败:', e);
+      this.modelFailed = true;
+      return false;
+    } finally {
+      this.modelLoading = false;
+    }
+  }
+
+  // ── 气数表 ───────────────────────────────────────────
+  // boardEdge: 实际棋盘边长（9/13/19），用于截断棋盘外的"空点"不算气
+  _libertyMap(board, M, boardEdge) {
+    const E = boardEdge || M;   // 实际棋盘边界
+    const lmap = Array.from({length:M}, ()=>new Int8Array(M));
+    const done = new Uint8Array(M*M);
+    const nb = (r,c) => [[-1,0],[1,0],[0,-1],[0,1]]
+      .map(([dr,dc])=>[r+dr,c+dc]).filter(([nr,nc])=>nr>=0&&nr<E&&nc>=0&&nc<E);
+    const group = (r,c) => {
+      const col=board[r][c]; if(!col) return {stones:[],liberties:[]};
+      const vis=new Set(),st=[],lib=new Set(),q=[[r,c]];
+      while(q.length){const[cr,cc]=q.pop();const k=cr*E+cc;
+        if(vis.has(k))continue;vis.add(k);st.push([cr,cc]);
+        for(const[nr,nc]of nb(cr,cc)){
+          if(board[nr][nc]===0)lib.add(nr*E+nc);
+          else if(board[nr][nc]===col)q.push([nr,nc]);
+        }
+      }
+      return{stones:st,liberties:[...lib].map(k=>[Math.floor(k/E),k%E])};
+    };
+    for(let r=0;r<E;r++)for(let c=0;c<E;c++){
+      const k=r*E+c;if(!board[r][c]||done[k])continue;
+      const g=group(r,c),libs=Math.min(g.liberties.length,4);
+      for(const[gr,gc]of g.stones){lmap[gr][gc]=libs;done[gr*E+gc]=1;}
+    }
+    return lmap;
+  }
+
+  // ── 构建输入张量 ─────────────────────────────────────
+  // 模型期望: bin=[1,361,22]  glob=[1,19]  (19×19 flattened, channels-last)
+  //
+  // KataGo 多尺寸编码规范（b10c128 支持 9/13/19）：
+  //   1. 小棋盘放左上角（off=0），不居中
+  //   2. ch21(bias)=1 仅限棋盘内位置，棋盘外全 0
+  //   3. 气数通道 2-5 / 6-9 累积（l>=1 l>=2 l>=3 l>=4），模型实测有效
+  //   4. 全局特征 g[2/3] 编码棋盘尺寸：(N-19)/10
+  _buildInputs(game, color) {
+    const tf = this.tf;
+    const M  = 19;
+    const N  = game.size;
+    // 左上角放置（KataGo 标准），不再居中
+    const off = 0;
+
+    // 只填 NxN 区域，其余保持 0（off-board）
+    const emb = Array.from({length:M}, ()=>new Int8Array(M));
+    for(let r=0;r<N;r++) for(let c=0;c<N;c++)
+      emb[r][c] = game.board[r][c];
+
+    // 传入实际棋盘边长，避免棋盘外空点被误算为气
+    const lmap = this._libertyMap(emb, M, N);
+    const opp  = 3 - color;
+    const koR  = game.koPoint ? game.koPoint[0] : -1;
+    const koC  = game.koPoint ? game.koPoint[1] : -1;
+
+    const bin = new Float32Array(M*M*22);
+    const B   = (pos, ch) => pos*22+ch;
+
+    for(let r=0;r<M;r++) for(let c=0;c<M;c++) {
+      const pos = r*M+c;
+      // 棋盘外：所有特征包括 bias 保持 0
+      if(r >= N || c >= N) continue;
+
+      // ch21: bias（仅棋盘内=1，让模型识别边界）
+      bin[B(pos,21)] = 1;
+
+      const cell = emb[r][c];
+      if(cell===color) {
+        bin[B(pos,0)] = 1;
+        const l = lmap[r][c];
+        if(l>=1)bin[B(pos,2)]=1; if(l>=2)bin[B(pos,3)]=1;
+        if(l>=3)bin[B(pos,4)]=1; if(l>=4)bin[B(pos,5)]=1;
+      } else if(cell===opp) {
+        bin[B(pos,1)] = 1;
+        const l = lmap[r][c];
+        if(l>=1)bin[B(pos,6)]=1; if(l>=2)bin[B(pos,7)]=1;
+        if(l>=3)bin[B(pos,8)]=1; if(l>=4)bin[B(pos,9)]=1;
+      }
+      if(r===koR && c===koC) bin[B(pos,10)] = 1;
+    }
+
+    // 历史落子 planes 11-15 (mine), 16-20 (opp)
+    const myC=color===1?'B':'W', opC=color===1?'W':'B';
+    let mi=0, oi=0;
+    for(let h=battleMoveHistory.length-1;h>=0;h--) {
+      if(mi>=5&&oi>=5) break;
+      const mv=battleMoveHistory[h];
+      if(mv.pos==='pass') continue;
+      try {
+        const[mr,mc]=fromGTP(mv.pos,N);
+        if(mr>=0&&mr<N&&mc>=0&&mc<N) {
+          const pos=mr*M+mc;   // 左上角，无 off 偏移
+          if(mv.color===myC&&mi<5){bin[B(pos,11+mi)]=1;mi++;}
+          else if(mv.color===opC&&oi<5){bin[B(pos,16+oi)]=1;oi++;}
+        }
+      } catch(_) {}
+    }
+
+    // glob: [1, 19]
+    const g = new Float32Array(19);
+    g[0] = 6.5/15.0;            // komi 归一化（模型实测有效值）
+    g[1] = color===2 ? 1 : 0;  // 白棋视角
+    g[2] = (N - 19) / 10.0;    // 棋盘宽（19×19=0, 9×9=-1.0）
+    g[3] = (N - 19) / 10.0;    // 棋盘高
+
+    return {
+      binT: tf.tensor3d(bin, [1, M*M, 22]),
+      glbT: tf.tensor2d(g,  [1, 19]),
+      off, M, N,
+    };
+  }
+
+  // ── 推理 ─────────────────────────────────────────────
+  // 模型含动态分支，必须用 executeAsync 而非 predict
+  //
+  // 已确认的模型输出顺序（缓存加载 b10c128）：
+  //   [0] ownership_output  shape=[1,19,19]  size=361
+  //   [1] policy_output     shape=[1,2,362]  size=724  ← 需要这个（双头 channel-first）
+  //   [2] miscvalues_output shape=[1,10]     size=10
+  //   [3] value_output      shape=[1,3]      size=3
+  //
+  // 识别策略：
+  //   1. 用 shape 精确匹配（最可靠）：最后一维==362 → policy；总元素==3 → value
+  //   2. Shape 缺失时退回 size 匹配
+  async _runInference(game, color) {
+    const { binT, glbT, M, N } = this._buildInputs(game, color);
+
+    let allOuts;
+    try {
+      allOuts = await this.model.executeAsync(
+        { 'swa_model/bin_inputs': binT, 'swa_model/global_inputs': glbT }
+      );
+    } finally {
+      binT.dispose(); glbT.dispose();
+    }
+
+    const outsArr = Array.isArray(allOuts) ? allOuts : [allOuts];
+
+    // ① 保存 shape 并读取数据（shape 必须在 dispose 前保存）
+    const meta = outsArr.map(t => ({
+      sz:    t.size,
+      shape: t.shape ? [...t.shape] : null,
+      lastDim: t.shape ? t.shape[t.shape.length - 1] : null,
+    }));
+    const allData = [];
+    for (const t of outsArr) {
+      allData.push(await t.data());
+      t.dispose();
+    }
+
+    console.log('[KataGo] outputs:', meta.map((m,i)=>`[${i}]sz=${m.sz},shape=${JSON.stringify(m.shape)}`).join(' | '));
+
+    if (allData.length < 1) throw new Error('模型无输出');
+
+    // ② 用 shape 精确定位 policy 和 value
+    //    policy：最后一维 = 362 (= 361 board positions + 1 pass)
+    //    value：总元素数 = 2 或 3
+    let policyIdx = -1, valueIdx = -1;
+
+    // shape-based detection（最可靠）
+    for (let i = 0; i < meta.length; i++) {
+      if (meta[i].lastDim === 362) { policyIdx = i; break; }
+    }
+    for (let i = 0; i < meta.length; i++) {
+      if (meta[i].sz <= 4) { valueIdx = i; break; }
+    }
+
+    // size-based fallback：policy size 是 362 或 724（362×2）
+    if (policyIdx === -1) {
+      for (let i = 0; i < allData.length; i++) {
+        const len = allData[i].length;
+        if (len === 362 || len === 724 || len === 361) { policyIdx = i; break; }
+      }
+    }
+    // value fallback：size 最小的张量（排除已找到的 policy）
+    if (valueIdx === -1) {
+      let minSz = Infinity, minIdx = -1;
+      for (let i = 0; i < allData.length; i++) {
+        if (i === policyIdx) continue;
+        if (allData[i].length < minSz) { minSz = allData[i].length; minIdx = i; }
+      }
+      if (minSz <= 10) valueIdx = minIdx;
+    }
+
+    if (policyIdx === -1) throw new Error('未找到 policy 输出（尝试过 shape 和 size 匹配均失败）');
+
+    const pFull = allData[policyIdx];
+    const pShape = meta[policyIdx].shape;  // e.g. [1,2,362] or [1,362] or [1,361]
+    const boardSq = M * M;  // 361
+
+    // ③ 确定 stride 和 headOffset
+    //    shape=[1,2,362] → channel-first 双头
+    //      head0(idx 0..361)   = 黑棋 policy（白棋回合时被屏蔽为 -5000）
+    //      head1(idx 362..723) = 白棋 policy（白棋回合时有效）
+    //    → 通过比较两头的最大值自动选取有效头（有效头最大值 >> -5000）
+    //    shape=[1,362,2] → channel-last，stride=2
+    //    shape=[1,362] / [1,361] → 单头，headOffset=0，stride=1
+    let stride = 1;
+    let headOffset = 0;  // 起始索引：0=头0，362=头1
+
+    if (pShape && pShape.length >= 3) {
+      const channels  = pShape[pShape.length - 2];  // e.g. 2
+      const positions = pShape[pShape.length - 1];  // e.g. 362
+
+      if (channels > 1 && positions === 362) {
+        // channel-first 双头 [batch, channels, positions]
+        stride = 1;
+        const half = positions;  // 362
+        // 比较两头最大值，自动选有效头
+        let max0 = -Infinity, max1 = -Infinity;
+        for (let j = 0;    j < half;            j++) if (pFull[j] > max0) max0 = pFull[j];
+        for (let j = half; j < pFull.length;    j++) if (pFull[j] > max1) max1 = pFull[j];
+        // 有效头的值远大于 -5000；若 head1 比 head0 高 100 以上则用 head1
+        headOffset = (max1 > max0 + 100) ? half : 0;
+        console.log('[KataGo] head0 max=', max0.toFixed(1), 'head1 max=', max1.toFixed(1),
+                    '→ using head', headOffset === 0 ? 0 : 1);
+      } else if (positions > 1 && channels === 362) {
+        // channel-last [batch, positions, channels]
+        stride = positions;
+        headOffset = 0;
+      }
+    } else if (!pShape && pFull.length >= 700) {
+      // shape 不可用：同样自动选头
+      stride = 1;
+      const half = Math.floor(pFull.length / 2);
+      let max0 = -Infinity, max1 = -Infinity;
+      for (let j = 0;    j < half;         j++) if (pFull[j] > max0) max0 = pFull[j];
+      for (let j = half; j < pFull.length; j++) if (pFull[j] > max1) max1 = pFull[j];
+      headOffset = (max1 > max0 + 100) ? half : 0;
+    }
+
+    // ④ 计算 winProb（从 value 张量的 softmax）
+    let winProb = null;
+    if (valueIdx !== -1) {
+      const v = allData[valueIdx];
+      const vmax = Math.max(...v);
+      const exps = Array.from(v).map(x => Math.exp(x - vmax));
+      const sum  = exps.reduce((a,b) => a + b, 0);
+      winProb = exps[0] / sum * 2 - 1;
+    }
+
+    const sample6 = Array.from(pFull.slice(headOffset, headOffset + 6)).map(x=>x.toFixed(3));
+    console.log('[KataGo] policyIdx=', policyIdx, 'headOffset=', headOffset,
+                'len=', pFull.length, 'stride=', stride,
+                'sample=', sample6, 'winProb=', winProb?.toFixed(3));
+
+    // ⑤ 映射到实际棋盘坐标（左上角，无 offset）
+    const policy = new Float32Array(N*N+1);
+    for(let r=0;r<N;r++) for(let c=0;c<N;c++)
+      policy[r*N+c] = pFull[headOffset + (r*M+c) * stride];
+    const passIdx = headOffset + boardSq * stride;
+    policy[N*N] = passIdx < pFull.length ? pFull[passIdx] : -Infinity;
+
+    // ── 调试：打印 policy 最高的前5个落点，确认是否合理 ──
+    // 正确的 KataGo policy 第一手应优先星位（如 (3,3)(3,15)(15,3)(15,15)）
+    const top5 = Array.from({length: N*N}, (_,i) => ({r:Math.floor(i/N), c:i%N, v:policy[i]}))
+      .sort((a,b) => b.v - a.v).slice(0, 5);
+    console.log('[KataGo] top5:', top5.map(m=>`(${m.r},${m.c})=${m.v.toFixed(2)}`).join(' | '));
+
+    return { policy, winProb };
+  }
+
+  // ── UI 徽章 ───────────────────────────────────────────
+  _setBadge(text, color) {
+    const el = document.getElementById('b-ai-badge');
+    if(!el) return;
+    el.style.display = 'block';
+    el.style.color   = color || '#7777aa';
+    el.textContent   = text;
+  }
+
+  // ── 主接口 ────────────────────────────────────────────
+  // 所有棋盘尺寸均尝试 KataGo 神经网络（b10c128 支持 9/13/19 路）
+  // 9×9：NN 筛选 Top-K 候选手 → 短 MCTS 验证（混合模式，规避小棋盘偶发失误）
+  // 13×19：直接 NN 落子（与原 19×19 逻辑相同）
+  // 模型加载失败：降级到高强度 MCTS
+  async getBestMoveAsync(game, color, onStatus) {
+    if(onStatus) onStatus('browser_loading');
+    this._setBadge('⏳ 加载神经网络模型…', '#aaa');
+
+    const ok = await this._ensureModel();
+    if(!ok) {
+      this._setBadge('⚙️ MCTS 深度搜索中…', '#5ba85b');
+      if(onStatus) onStatus('local_mcts');
+      await new Promise(r => setTimeout(r, 30));
+      return this.fallback.getBestMove(game, color);
+    }
+
+    if(onStatus) onStatus('browser_thinking');
+
+    try {
+      const N = game.size;
+      const { policy, winProb } = await this._runInference(game, color);
+
+      const validMoves = game.getValidMoves(color);
+      if(!validMoves.length) return null;
+
+      // 认输判断：根据棋盘尺寸调整触发时机
+      const resignThresh = N === 9 ? 15 : N === 13 ? 30 : 40;
+      if(winProb!==null && winProb<-0.85 && game.moveCount>resignThresh) {
+        this._resignConsec++;
+        if(this._resignConsec>=3) { this._resignConsec=0; return AI_RESIGN; }
+      } else { this._resignConsec=0; }
+
+      // ── 9×9 混合模式：NN top-K → MCTS 验证 ─────────────────
+      // 用 NN policy 筛选最有价值的候选手，再用 MCTS 做战术校验
+      // 既保留 NN 的布局直觉，又通过 MCTS 弥补小棋盘偶发误判
+      if (N === 9) {
+        const K = Math.min(20, validMoves.length);
+        const topCands = validMoves
+          .map(([r,c]) => ({ move:[r,c], p: policy[r*N+c] }))
+          .sort((a,b) => b.p - a.p)
+          .slice(0, K)
+          .map(x => x.move);
+        const mctsN = this.diff==='hard' ? 2500 : this.diff==='medium' ? 1000 : 400;
+        this._setBadge('🧠 KataGo + MCTS', '#7b68ee');
+        if(onStatus) onStatus('browser_thinking');
+        return this.fallback._mcts(game, color, topCands, mctsN);
+      }
+
+      // ── 13×13 / 19×19：直接 NN 落子 ────────────────────────
+      this._setBadge(`🧠 KataGo 神经网络 (${N}×${N})`, '#7b68ee');
+      // 难度噪声：挑战≈确定性，进阶加扰动
+      const noise = this.diff==='medium' ? 1.5 : 0.15;
+      let best=null, bestScore=-Infinity;
+      for(const[r,c] of validMoves) {
+        const score = policy[r*N+c] + (Math.random()-0.5)*noise;
+        if(score>bestScore) { bestScore=score; best=[r,c]; }
+      }
+      return best;
+    } catch(e) {
+      console.warn('KataGo 推理失败:', e);
+      this._setBadge('⚙️ MCTS 深度搜索中…', '#5ba85b');
+      if(onStatus) onStatus('local_mcts');
+      return this.fallback.getBestMove(game, color);
+    }
+  }
+}
+let completedLevels = new Set(JSON.parse(localStorage.getItem('xtgo_completed') || '[]'));
+let atariCount = 0; // for atari_opp goal
+
+// ═══════════════════════════════════════════════════════
+// SCREEN NAV
+// ═══════════════════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (id === 'chapter-screen') renderChapters();
+  if (id === 'tsumego-chapter-screen') renderTsChapters();
+}
+
+function renderChapters() {
+  const grid = document.getElementById('chapters-grid');
+  grid.innerHTML = '';
+  CHAPTERS.forEach((ch, i) => {
+    const prog = ch.levels.filter(l => completedLevels.has(l)).length;
+    const card = document.createElement('div');
+    card.className = 'chapter-card';
+    card.innerHTML = `<div class="chapter-icon">${ch.icon}</div><div class="chapter-name">${ch.name}</div><div class="chapter-progress">${prog}/${ch.levels.length} 完成</div>`;
+    card.onclick = () => showLevelSelect(ch);
+    grid.appendChild(card);
+  });
+}
+
+function showLevelSelect(ch) {
+  document.getElementById('lvl-screen-title').textContent = `${ch.icon} ${ch.name}`;
+  const grid = document.getElementById('levels-grid');
+  grid.innerHTML = '';
+  ch.levels.forEach((lid, i) => {
+    const lv = LEVELS[lid];
+    const done = completedLevels.has(lid);
+    const firstUndone = ch.levels.findIndex(l => !completedLevels.has(l));
+    const locked = i > firstUndone + 1;
+    const btn = document.createElement('div');
+    btn.className = 'level-btn' + (done?' completed':(locked?' locked':(i===firstUndone?' cur':'')));
+    btn.innerHTML = `<div class="lnum">${done?'✓':lid+1}</div><div style="font-size:.72rem;margin-top:3px">${lv.title}</div>`;
+    if (!locked) btn.onclick = () => startLevel(lid);
+    grid.appendChild(btn);
+  });
+  showScreen('level-screen');
+}
+
+// ═══════════════════════════════════════════════════════
+// CAMPAIGN
+// ═══════════════════════════════════════════════════════
+function startLevel(lid) {
+  campLevel = LEVELS[lid];
+  campGame = new GoGame(campLevel.boardSize);
+  campRenderer = new BoardRenderer(document.getElementById('board-canvas'));
+  campRenderer.setup(campLevel.boardSize);
+  campGame.currentPlayer = campLevel.playerColor;
+  atariCount = 0;
+
+  // 初始布局
+  for (const [r,c,col] of (campLevel.setup||[])) campGame.board[r][c] = col;
+
+  // 关联AI（概念驱动教学AI）
+  campGame._ai = new ConceptAI(campLevel.chapterIdx, campLevel.aiPassivity);
+
+  // UI
+  const ch = CHAPTERS.find(c => c.levels.includes(lid));
+  document.getElementById('s-tag').textContent = `第${ch?ch.id+1:1}章 · 第${lid+1}关`;
+  document.getElementById('s-title').textContent = campLevel.title;
+  document.getElementById('s-concept').textContent = campLevel.concept;
+  document.getElementById('s-goal').textContent = campLevel.goal.text;
+  document.getElementById('s-hint').textContent = campLevel.hint;
+  document.getElementById('s-hint').classList.remove('on');
+  document.getElementById('ai-think-label').textContent = '';
+
+  // 势力图
+  const infToggle = document.getElementById('inf-toggle');
+  infToggle.checked = !!campLevel.forceInfluence;
+  campRenderer.showInfluence = !!campLevel.forceInfluence;
+
+  updateCampStatus();
+  setupCampCanvas();
+  showScreen('game-screen');
+  campRenderer.draw(campGame);
+}
+
+function setupCampCanvas() {
+  const cv = document.getElementById('board-canvas');
+  cv.style.touchAction = 'none';
+  cv.onpointerdown  = e => { e.preventDefault(); handleCampClick(e); };
+  cv.onpointermove  = e => {
+    if (!campRenderer||!campGame) return;
+    const pt = campRenderer.getIntersection(e.clientX, e.clientY);
+    campRenderer.hover = pt ? {r:pt[0], c:pt[1]} : null;
+    campRenderer.hoverColor = campGame.currentPlayer;
+    campRenderer.draw(campGame);
+  };
+  cv.onpointerleave = () => { if (campRenderer) { campRenderer.hover=null; campRenderer.draw(campGame); } };
+}
+
+function handleCampClick(e) {
+  if (!campLevel||!campGame||!campRenderer||aiThinking) return;
+  if (campGame.currentPlayer !== campLevel.playerColor) return;
+  // support both mouse and pointer events
+  const clientX = e.clientX, clientY = e.clientY;
+  const pt = campRenderer.getIntersection(clientX, clientY);
+  if (!pt) return;
+  const [r,c] = pt;
+
+  // 查看气模式（点击棋子显示气）
+  if (campLevel.showLiberties && campGame.board[r][c] !== 0) {
+    const g = campGame.getGroup(r,c);
+    campRenderer.highlights = [
+      ...g.stones.map(([sr,sc])=>({r:sr,c:sc,type:'atari'})),
+      ...g.liberties.map(([sr,sc])=>({r:sr,c:sc,type:'lib'}))
+    ];
+    campRenderer.draw(campGame);
+    return;
+  }
+
+  if (!campGame.isValidMove(r,c,campGame.currentPlayer)) return;
+  campGame.placeStone(r,c);
+  campRenderer.lastMove = [r,c];
+  campRenderer.highlights = [];
+  campRenderer.draw(campGame);
+  updateCampStatus();
+
+  // 打吃计数
+  if (campLevel.goal.type === 'atari_opp') {
+    const opp = 3 - campLevel.playerColor;
+    for (let br=0;br<campGame.size;br++) for (let bc=0;bc<campGame.size;bc++) {
+      if (campGame.board[br][bc] === opp) {
+        if (campGame.getGroup(br,bc).liberties.length === 1) { atariCount++; break; }
+      }
+    }
+  }
+
+  if (checkCampGoal()) return;
+
+  // AI回应
+  aiThinking = true;
+  document.getElementById('ai-think-label').textContent = 'AI思考中…';
+  setTimeout(() => {
+    const aiMove = campGame._ai.getBestMove(campGame, campGame.currentPlayer);
+    if (aiMove) { campGame.placeStone(aiMove[0],aiMove[1]); campRenderer.lastMove=aiMove; }
+    else campGame.pass();
+    campRenderer.draw(campGame);
+    aiThinking = false;
+    document.getElementById('ai-think-label').textContent = '';
+    updateCampStatus();
+    checkCampGoal();
+  }, 500);
+}
+
+function checkCampGoal() {
+  if (!campLevel) return false;
+  const g = campLevel.goal, game = campGame;
+  const playerCap = campLevel.playerColor === 1 ? game.captured[0] : game.captured[1];
+
+  if (g.type === 'place_any' && game.moveCount >= (g.count||1)) { setTimeout(levelComplete,400); return true; }
+  if (g.type === 'capture' && playerCap >= g.count) { setTimeout(levelComplete,400); return true; }
+  if (g.type === 'atari_opp') {
+    // 重新统计atari：扫描所有对手棋串
+    let curAtari = 0;
+    const opp = 3 - campLevel.playerColor;
+    const seen = new Set();
+    for (let r=0;r<game.size;r++) for (let c=0;c<game.size;c++) {
+      if (game.board[r][c]!==opp) continue;
+      const k = r*100+c;
+      if (seen.has(k)) continue;
+      const gr = game.getGroup(r,c);
+      gr.stones.forEach(([sr,sc])=>seen.add(sr*100+sc));
+      if (gr.liberties.length===1) curAtari++;
+    }
+    if (atariCount >= g.count) { setTimeout(levelComplete,400); return true; }
+  }
+  if (g.type === 'influence_demo' && game.moveCount >= 8) { setTimeout(levelComplete,400); return true; }
+  if (g.type === 'territory') {
+    const sc = game.estimateScore(0);
+    const myT = campLevel.playerColor===1 ? sc.black : sc.white;
+    if (myT >= g.minTerritory) { setTimeout(levelComplete,400); return true; }
+  }
+  if (g.type === 'full_game' && game.consecutivePasses >= 2) { setTimeout(levelComplete,400); return true; }
+  if (g.type === 'make_eye' || g.type === 'make_eyes') {
+    if (countEyes(game, campLevel.playerColor) >= (g.count||1)) { setTimeout(levelComplete,400); return true; }
+  }
+  return false;
+}
+
+function countEyes(game, color) {
+  let eyes = 0;
+  for (let r=0;r<game.size;r++) for (let c=0;c<game.size;c++) {
+    if (game.board[r][c]!==0) continue;
+    const nb = game.neighbors(r,c);
+    if (nb.length >= 2 && nb.every(([nr,nc])=>game.board[nr][nc]===color)) eyes++;
+  }
+  return eyes;
+}
+
+function levelComplete() {
+  if (!campLevel) return;
+  const lv = campLevel;
+  completedLevels.add(lv.id);
+  localStorage.setItem('xtgo_completed', JSON.stringify([...completedLevels]));
+  document.getElementById('c-icon').textContent = lv.id===14?'🎊':'🎉';
+  document.getElementById('c-title').textContent = lv.id===14?'课程完成！':'过关！';
+  document.getElementById('c-body').textContent = lv.completion;
+  const nb = document.getElementById('next-btn');
+  if (lv.id+1 < LEVELS.length) {
+    nb.style.display = '';
+    nb.onclick = () => { closeModal('complete-modal'); startLevel(lv.id+1); };
+  } else {
+    nb.style.display = 'none';
+  }
+  document.getElementById('complete-modal').classList.add('on');
+}
+
+function toggleHint() { document.getElementById('s-hint').classList.toggle('on'); }
+function toggleCampaignInf() {
+  if (campRenderer) { campRenderer.showInfluence = document.getElementById('inf-toggle').checked; campRenderer.draw(campGame); }
+}
+function undoMove() {
+  if (campGame && !aiThinking) {
+    campGame.undo(); // undo AI
+    campGame.undo(); // undo player
+    campRenderer.lastMove=null; campRenderer.highlights=[];
+    campRenderer.draw(campGame); updateCampStatus();
+  }
+}
+function passMove() {
+  if (!campGame||aiThinking) return;
+  campGame.pass();
+  campRenderer.lastMove=null; campRenderer.draw(campGame); updateCampStatus();
+  if (checkCampGoal()) return;
+  aiThinking=true;
+  document.getElementById('ai-think-label').textContent='AI思考中…';
+  setTimeout(()=>{
+    campGame.pass(); campRenderer.draw(campGame); aiThinking=false;
+    document.getElementById('ai-think-label').textContent='';
+    updateCampStatus(); checkCampGoal();
+  },400);
+}
+function updateCampStatus() {
+  if (!campGame) return;
+  const p = campGame.currentPlayer;
+  const dot = document.getElementById('s-turn-dot');
+  dot.className = 'sdot '+(p===1?'b':'w');
+  document.getElementById('s-turn').textContent = p===campLevel.playerColor?'你的回合（黑）':'AI回合（白）';
+  document.getElementById('s-cap').textContent = `提子 ●${campGame.captured[0]} ○${campGame.captured[1]}`;
+}
+
+// ═══════════════════════════════════════════════════════
+// BATTLE MODE
+// ═══════════════════════════════════════════════════════
+function selectSize(sz) {
+  battleSize = sz;
+  [9,13,19].forEach(s => {
+    const btn = document.getElementById('size-btn-'+s);
+    if (btn) btn.className = 'size-btn' + (s===sz?' active':'');
+  });
+  const descs = {
+    9: '9×9 · 入门标准棋盘，对局约10分钟',
+    13:'13×13 · 中级棋盘，对局约30分钟',
+    19:'19×19 · 正式标准棋盘，对局约1小时'
+  };
+  const d = document.getElementById('size-desc');
+  if (d) d.textContent = descs[sz];
+}
+
+function startBattle(diff) {
+  battleDiff = diff;
+  battleMoveHistory = [];
+  const localAI = new GoAI(diff);
+  // 入门=本地MCTS（~业余15-20级，即时）；进阶/挑战=浏览器神经网络AI（19×19约业余1-2段）
+  battleAI = diff === 'easy' ? localAI : new BrowserKataGoAI(diff, localAI);
+  battGame = new GoGame(battleSize);
+  battRenderer = new BoardRenderer(document.getElementById('battle-canvas'));
+  battRenderer.setup(battleSize); aiThinking = false;
+  const sizeNames = {9:'9路',13:'13路',19:'19路'};
+  const diffNames = {easy:'入门',medium:'进阶',hard:'挑战'};
+  document.getElementById('b-diff-tag').textContent = `${sizeNames[battleSize]} · ${diffNames[diff]}`;
+  document.getElementById('b-inf-toggle').checked = false;
+  battRenderer.showInfluence = false;
+  updateBattleStatus();
+  setupBattleCanvas();
+  showScreen('battle-screen');
+  battRenderer.draw(battGame);
+}
+
+function setupBattleCanvas() {
+  const cv = document.getElementById('battle-canvas');
+  cv.style.touchAction = 'none';
+  cv.onpointerdown  = e => { e.preventDefault(); handleBattleClick(e); };
+  cv.onpointermove  = e => {
+    if (!battRenderer||!battGame||aiThinking) return;
+    const pt = battRenderer.getIntersection(e.clientX, e.clientY);
+    battRenderer.hover = pt ? {r:pt[0], c:pt[1]} : null;
+    battRenderer.hoverColor = battGame.currentPlayer;
+    battRenderer.draw(battGame);
+  };
+  cv.onpointerleave = () => { if (battRenderer) { battRenderer.hover=null; battRenderer.draw(battGame); } };
+}
+
+async function handleBattleClick(e) {
+  if (!battGame||!battRenderer||aiThinking||battGame.currentPlayer!==1) return;
+  const pt = battRenderer.getIntersection(e.clientX, e.clientY);
+  if (!pt) return;
+  const [r,c]=pt;
+  if (!battGame.isValidMove(r,c,1)) return;
+  battGame.placeStone(r,c);
+  battleMoveHistory.push({color:'B', pos:toGTP(r,c,battGame.size)});
+  battRenderer.lastMove=[r,c]; battRenderer.hover=null;
+  battRenderer.draw(battGame); updateBattleStatus();
+  if (battGame.consecutivePasses>=2){endBattle();return;}
+  await _doAIMove();
+}
+
+async function _doAIMove() {
+  aiThinking=true;
+  const thinkEl = document.getElementById('b-ai-think');
+  let m;
+  if (battleAI instanceof BrowserKataGoAI) {
+    thinkEl.textContent = '⏳ 加载 AI 模型…';
+    m = await battleAI.getBestMoveAsync(battGame, 2, (src) => {
+      if (src === 'browser_loading') thinkEl.textContent = '⏳ 加载神经网络模型（首次约30秒）…';
+      else if (src === 'browser_thinking') thinkEl.textContent = '🧠 KataGo 神经网络思考中…';
+      else if (src === 'local_mcts') thinkEl.textContent = '⚙️ MCTS 深度搜索中…';
+      else if (src === 'local') thinkEl.textContent = '⚙️ MCTS 深度搜索中…';
+    });
+  } else {
+    thinkEl.textContent = '🤖 本地 AI 思考中…';
+    await new Promise(r => setTimeout(r, 50));  // 让浏览器先刷新文字
+    m = battleAI.getBestMove(battGame, 2);
+  }
+  // AI 认输处理
+  if (m === AI_RESIGN) {
+    aiThinking = false; thinkEl.textContent = '';
+    aiResignBattle(); return;
+  }
+  if(m){
+    battGame.placeStone(m[0],m[1]);
+    battleMoveHistory.push({color:'W', pos:toGTP(m[0],m[1],battGame.size)});
+    battRenderer.lastMove=m;
+  } else {
+    battGame.pass();
+    battleMoveHistory.push({color:'W', pos:'pass'});
+    battRenderer.lastMove=null;
+  }
+  battRenderer.draw(battGame); aiThinking=false;
+  thinkEl.textContent='';
+  updateBattleStatus();
+  if(battGame.consecutivePasses>=2) endBattle();
+}
+
+function toggleBattleInf() {
+  if(battRenderer){battRenderer.showInfluence=document.getElementById('b-inf-toggle').checked;battRenderer.draw(battGame);}
+}
+async function battlePass() {
+  if(!battGame||aiThinking) return;
+  battGame.pass();
+  battleMoveHistory.push({color:'B', pos:'pass'});
+  battRenderer.lastMove=null; battRenderer.draw(battGame); updateBattleStatus();
+  if(battGame.consecutivePasses>=2){endBattle();return;}
+  await _doAIMove();
+}
+function battleUndo() {
+  if(!battGame||aiThinking) return;
+  battGame.undo(); battGame.undo();
+  battleMoveHistory.splice(-2);   // 撤销玩家和AI各一手
+  battRenderer.lastMove=null; battRenderer.draw(battGame); updateBattleStatus();
+}
+function resignGame() {
+  if(!battGame) return;
+  const sc=battGame.estimateScore();
+  document.getElementById('go-icon').textContent='🏳';
+  document.getElementById('go-title').textContent='你认输了';
+  document.getElementById('go-body').textContent=`本局黑方估分：${sc.black.toFixed(1)}，白方估分：${sc.white.toFixed(1)}（含贴目6.5）`;
+  document.getElementById('gameover-modal').classList.add('on');
+}
+function endBattle() {
+  const sc=battGame.estimateScore();
+  const bWin=sc.black>sc.white;
+  document.getElementById('go-icon').textContent=bWin?'🎉':'🤖';
+  document.getElementById('go-title').textContent=bWin?'黑方（你）胜！':'白方（AI）胜！';
+  document.getElementById('go-body').textContent=`黑方 ${sc.black.toFixed(1)} 目 vs 白方 ${sc.white.toFixed(1)} 目（含贴目6.5）`;
+  document.getElementById('gameover-modal').classList.add('on');
+}
+function aiResignBattle() {
+  document.getElementById('go-icon').textContent='🏆';
+  document.getElementById('go-title').textContent='AI认输！你赢了！';
+  document.getElementById('go-body').textContent='AI判断当前形势无法挽回，主动认输。恭喜你！';
+  document.getElementById('gameover-modal').classList.add('on');
+}
+function restartBattle() { closeModal('gameover-modal'); startBattle(battleDiff); }
+function updateBattleStatus() {
+  if(!battGame) return;
+  const p=battGame.currentPlayer;
+  document.getElementById('b-turn-dot').className='sdot '+(p===1?'b':'w');
+  document.getElementById('b-turn').textContent=p===1?'你的回合（黑）':'AI回合（白）';
+  document.getElementById('b-cap').textContent=battGame.captured[0];
+  document.getElementById('w-cap').textContent=battGame.captured[1];
+  document.getElementById('b-moves').textContent=battGame.moveCount;
+}
+
+// ═══════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════
+function closeModal(id) { document.getElementById(id).classList.remove('on'); }
+
+window.addEventListener('resize', ()=>{
+  if(campGame&&campRenderer){campRenderer.setup(campGame.size);campRenderer.draw(campGame);}
+  if(battGame&&battRenderer){battRenderer.setup(battleSize);battRenderer.draw(battGame);}
+  if(tsGame&&tsRenderer){tsRenderer.setup(tsLevel.boardSize);tsRenderer.draw(tsGame);updateTsHighlights();}
+});
+
+// ═══════════════════════════════════════════════════════
+// 死活题数据
+// setup: [[r,c,color],...] 颜色1=黑2=白
+// goal: 'kill'=提走目标白棋 | 'live'=让黑棋形成两眼
+// targetStone: 目标棋串中的一颗棋子坐标
+// solution: 第一手的正确落子（用于提示）
+// ═══════════════════════════════════════════════════════
+const TS_CHAPTERS = [
+  { id:0, name:'入门杀棋', icon:'🔴', levels:[0,1,2,3,4] },
+  { id:1, name:'基础死活', icon:'🟠', levels:[5,6,7,8,9] },
+  { id:2, name:'进阶死活', icon:'🟡', levels:[10,11,12,13,14] }
+];
+
+const TSUMEGO = [
+  // ── 第一章：入门杀棋（1手） ──
+  {
+    id:0, boardSize:7, playerColor:1,
+    title:'直线三·提子',
+    desc:'白棋三子连成一线，气已极少。黑先，提走白棋。',
+    goal:'kill', targetStone:[1,2],
+    setup:[ [1,1,2],[1,2,2],[1,3,2], [0,1,1],[0,2,1],[0,3,1],[1,0,1],[2,1,1],[2,2,1],[2,3,1] ],
+    solution:[1,4],
+    goalText:'黑先提走白棋三子',
+    hint:'白棋只剩右侧一口气，直接落子封住即可。',
+    completion:'正确！白棋直线三连，气被全部封死，一手提走。'
+  },
+  {
+    id:1, boardSize:5, playerColor:1,
+    title:'角落捕获',
+    desc:'白棋困在角落，黑棋已形成包围。黑先，找到唯一的气落子。',
+    goal:'kill', targetStone:[0,0],
+    setup:[ [0,0,2],[0,1,2],[1,0,2],[2,0,2],[2,1,2], [0,2,1],[1,2,1],[2,2,1],[3,0,1],[3,1,1],[3,2,1] ],
+    solution:[1,1],
+    goalText:'黑先提走角落白棋',
+    hint:'白棋五子的唯一一口气在哪里？找到那个交叉点。',
+    completion:'漂亮！白棋角落五子只有[1,1]一口气，黑子落下即全部提走。'
+  },
+  {
+    id:2, boardSize:7, playerColor:1,
+    title:'打吃必杀',
+    desc:'白棋被包围，仅剩一口气。黑先提子。',
+    goal:'kill', targetStone:[2,3],
+    setup:[ [1,2,2],[1,3,2],[1,4,2],[2,2,2],[2,4,2],[3,2,2],[3,3,2],[3,4,2],
+            [0,2,1],[0,3,1],[0,4,1],[1,1,1],[1,5,1],[2,1,1],[2,5,1],[3,1,1],[3,5,1],[4,2,1],[4,3,1],[4,4,1] ],
+    solution:[2,3],
+    goalText:'黑先落子提走白棋',
+    hint:'白棋中间有一口气，填入即可全部提走。',
+    completion:'完美！白棋包围圈中的唯一空点就是要点，黑子占领即完成提子。'
+  },
+  {
+    id:3, boardSize:7, playerColor:1,
+    title:'两手杀',
+    desc:'白棋尚有两口气，黑棋须两步将其杀死。注意顺序！',
+    goal:'kill', targetStone:[2,2],
+    setup:[ [2,2,2],[2,3,2],[3,2,2],[3,3,2],
+            [1,2,1],[1,3,1],[2,1,1],[2,4,1],[3,1,1],[3,4,1],[4,2,1],[4,3,1] ],
+    solution:[1,2],
+    goalText:'黑先两手杀死白棋',
+    hint:'白棋有[1,2]和[1,3]两口气（暂时去除了一侧黑子）。先填左边，再填右边。',
+    completion:'很好！先打吃再提子，这是最基本的杀棋节奏。'
+  },
+  {
+    id:4, boardSize:7, playerColor:1,
+    title:'要点一手',
+    desc:'白棋有两个潜在眼位，但其中一个是假眼。黑棋找到要点，一手破眼后白棋必死。',
+    goal:'kill', targetStone:[1,3],
+    setup:[ [1,2,2],[1,3,2],[1,4,2],[2,2,2],[2,4,2],[3,2,2],[3,3,2],[3,4,2],
+            [0,2,1],[0,3,1],[0,4,1],[1,1,1],[1,5,1],[2,1,1],[2,5,1],[4,1,1],[4,2,1],[4,3,1],[4,4,1],[4,5,1],[3,1,1],[3,5,1] ],
+    solution:[2,3],
+    goalText:'黑先找要点，让白棋无法做活',
+    hint:'白棋中间的[2,3]是要点，黑子落下后白棋两个眼位都将成为假眼。',
+    completion:'要点！[2,3]是白棋眼形的要点，黑子占领后白棋无法做出两眼，必死无疑。'
+  },
+
+  // ── 第二章：基础死活 ──
+  {
+    id:5, boardSize:7, playerColor:1,
+    title:'做活一手',
+    desc:'黑棋棋串只有一个眼，危在旦夕。黑先，用一手棋做出第二只眼。',
+    goal:'live', targetStone:[2,1],
+    setup:[ [1,1,1],[1,2,1],[1,3,1],[2,1,1],[3,1,1],[3,2,1],[3,3,1],
+            [0,1,2],[0,2,2],[0,3,2],[1,0,2],[1,4,2],[2,0,2],[2,4,2],[3,0,2],[3,4,2],[4,1,2],[4,2,2],[4,3,2] ],
+    solution:[2,3],
+    goalText:'黑先做出两眼活棋',
+    hint:'黑棋右侧还有[2,3]可以围住第二个眼，落子于此即活。',
+    completion:'活了！两眼活棋，永远无法被提走。'
+  },
+  {
+    id:6, boardSize:9, playerColor:1,
+    title:'分断做两眼',
+    desc:'黑棋内部有足够空间做两眼，但需要找对要点。黑先活棋。',
+    goal:'live', targetStone:[4,2],
+    setup:[ [3,1,1],[3,2,1],[3,3,1],[3,4,1],[4,1,1],[4,4,1],[5,1,1],[5,2,1],[5,3,1],[5,4,1],
+            [2,1,2],[2,2,2],[2,3,2],[2,4,2],[2,5,2],[3,5,2],[4,5,2],[5,5,2],[6,1,2],[6,2,2],[6,3,2],[6,4,2],[6,5,2],[3,0,2],[4,0,2],[5,0,2] ],
+    solution:[4,2],
+    goalText:'黑先在内部做出两眼',
+    hint:'黑棋内部空间[4,2]和[4,3]都是空的，黑棋落[4,2]后内部形成两个分离眼位。',
+    completion:'正确！把内部空间分成两部分，各形成一个眼，黑棋永远活着。'
+  },
+  {
+    id:7, boardSize:7, playerColor:1,
+    title:'破劫活棋',
+    desc:'白棋准备从要点破眼。黑先抢占要点，活棋。',
+    goal:'live', targetStone:[2,2],
+    setup:[ [1,1,1],[1,2,1],[1,3,1],[2,1,1],[2,3,1],[3,1,1],[3,2,1],[3,3,1],
+            [0,1,2],[0,2,2],[0,3,2],[1,0,2],[1,4,2],[2,0,2],[2,4,2],[3,0,2],[3,4,2],[4,1,2],[4,2,2],[4,3,2] ],
+    solution:[2,2],
+    goalText:'黑先抢占中间要点活棋',
+    hint:'[2,2]是黑棋内部的唯一空点，黑棋落下后内部形成两个眼。若不占，白棋落入后黑棋只有一眼！',
+    completion:'抢先！要点对双方都至关重要，黑棋先手占领后即做成两眼活棋。'
+  },
+  {
+    id:8, boardSize:9, playerColor:1,
+    title:'曲四活棋',
+    desc:'黑棋形成弯曲形状，需要正确扩张眼位才能活棋。',
+    goal:'live', targetStone:[3,2],
+    setup:[ [2,2,1],[2,3,1],[2,4,1],[3,2,1],[4,2,1],[4,3,1],[4,4,1],
+            [1,2,2],[1,3,2],[1,4,2],[1,5,2],[2,1,2],[2,5,2],[3,1,2],[3,5,2],[4,1,2],[4,5,2],[5,2,2],[5,3,2],[5,4,2],[5,5,2] ],
+    solution:[3,3],
+    goalText:'黑先做出两眼活棋',
+    hint:'黑棋内部[3,3]和[3,4]都是空的。落子[3,3]后，黑棋内部被分成上下两个眼。',
+    completion:'曲四活棋！正确落点将内部分成两眼，黑棋安全了。'
+  },
+  {
+    id:9, boardSize:7, playerColor:2,
+    title:'挤断破眼',
+    desc:'黑棋形成看似活棋的眼形，但有破绽。白先，挤入破坏黑棋眼形。',
+    goal:'kill', targetStone:[2,2],
+    setup:[ [1,1,1],[1,2,1],[1,3,1],[2,1,1],[2,3,1],[3,1,1],[3,2,1],[3,3,1],
+            [0,1,2],[0,3,2],[1,0,2],[1,4,2],[2,0,2],[2,4,2],[3,0,2],[3,4,2],[4,1,2],[4,3,2] ],
+    solution:[2,2],
+    goalText:'白先破坏黑棋眼形，使其无法做活',
+    hint:'[2,2]是黑棋两个眼的分界要点。白棋占领后，黑棋两个眼合并成假眼，无法活棋。',
+    completion:'精准！白棋占据要点，黑棋内部两眼合并成一眼，黑棋死亡。'
+  },
+
+  // ── 第三章：进阶死活 ──
+  {
+    id:10, boardSize:9, playerColor:1,
+    title:'刀五死棋',
+    desc:'白棋形成刀把五的形状，理论上是死棋。黑先找到要点杀死白棋。',
+    goal:'kill', targetStone:[3,4],
+    setup:[ [2,3,2],[2,4,2],[2,5,2],[3,3,2],[3,5,2],[4,3,2],[4,4,2],[4,5,2],[3,6,2],
+            [1,3,1],[1,4,1],[1,5,1],[1,6,1],[2,2,1],[2,6,1],[3,2,1],[3,7,1],[4,2,1],[4,6,1],[5,3,1],[5,4,1],[5,5,1],[5,6,1] ],
+    solution:[3,4],
+    goalText:'黑先找到要点，杀死白棋',
+    hint:'[3,4]是"刀把五"形状的要点，黑子占领后白棋两个潜在眼位都成为假眼。',
+    completion:'绝妙！刀把五是最经典的死棋形，要点永远是[3,4]这样的中心位置。'
+  },
+  {
+    id:11, boardSize:9, playerColor:1,
+    title:'葡萄六活',
+    desc:'黑棋形成六格空间，需要找到正确方式做成两眼。',
+    goal:'live', targetStone:[4,3],
+    setup:[ [3,2,1],[3,3,1],[3,4,1],[4,2,1],[4,4,1],[5,2,1],[5,3,1],[5,4,1],
+            [2,2,2],[2,3,2],[2,4,2],[2,5,2],[3,1,2],[3,5,2],[4,1,2],[4,5,2],[5,1,2],[5,5,2],[6,2,2],[6,3,2],[6,4,2],[6,5,2] ],
+    solution:[4,3],
+    goalText:'黑先活棋',
+    hint:'黑棋内部有[3,3]、[4,3]两个空点。落[4,3]后，上方[3,3]单独成眼，下方也形成眼，活棋。',
+    completion:'正确！葡萄六形内部落正确要点，可以做成两眼活棋。'
+  },
+  {
+    id:12, boardSize:9, playerColor:1,
+    title:'扑入破眼',
+    desc:'白棋看似有两眼，但黑棋可以用"扑"手段破坏其眼形。黑先杀棋。',
+    goal:'kill', targetStone:[3,5],
+    setup:[ [2,4,2],[2,5,2],[2,6,2],[3,4,2],[3,6,2],[4,4,2],[4,5,2],[4,6,2],
+            [1,4,1],[1,5,1],[1,6,1],[1,7,1],[2,3,1],[2,7,1],[3,3,1],[3,7,1],[4,3,1],[4,7,1],[5,4,1],[5,5,1],[5,6,1],[5,7,1] ],
+    solution:[3,5],
+    goalText:'黑先用扑手杀死白棋',
+    hint:'黑棋直接落入白棋唯一眼位[3,5]，这是一个"扑"！白提黑后，白棋内部仅剩一眼，黑棋跟进杀死。',
+    completion:'精彩的扑！牺牲一子破眼，是进阶死活的经典手段。'
+  },
+  {
+    id:13, boardSize:9, playerColor:1,
+    title:'方四劫争',
+    desc:'白棋形成"方四"形状，这是著名的万年劫——黑棋能活，但须赢劫。黑先，找到劫争要点。',
+    goal:'live', targetStone:[4,3],
+    setup:[ [3,2,1],[3,3,1],[3,4,1],[4,2,1],[4,4,1],[5,2,1],[5,3,1],[5,4,1],
+            [2,2,2],[2,3,2],[2,4,2],[2,5,2],[3,1,2],[3,5,2],[4,1,2],[4,5,2],[5,1,2],[5,5,2],[6,2,2],[6,3,2],[6,4,2],[6,5,2] ],
+    solution:[4,3],
+    goalText:'黑先落入中心，引发劫争',
+    hint:'黑棋落入[4,3]后形成劫争，这是"方四"的标准处理方式。先找要点！',
+    completion:'方四劫！这是围棋中著名的劫争形，"方四"不入气，双方必须通过劫争决定死活。'
+  },
+  {
+    id:14, boardSize:9, playerColor:1,
+    title:'综合死活',
+    desc:'这是一道综合题，白棋内部有复杂的眼形变化。黑先，用正确的次序杀死白棋。',
+    goal:'kill', targetStone:[4,4],
+    setup:[ [3,3,2],[3,4,2],[3,5,2],[4,3,2],[4,5,2],[5,3,2],[5,4,2],[5,5,2],
+            [2,3,1],[2,4,1],[2,5,1],[2,6,1],[3,2,1],[3,6,1],[4,2,1],[4,6,1],[5,2,1],[5,6,1],[6,3,1],[6,4,1],[6,5,1],[6,6,1] ],
+    solution:[4,4],
+    goalText:'黑先找要点杀死白棋',
+    hint:'白棋内部[4,4]是唯一空点，也是唯一的生死要点。黑棋占领即可！',
+    completion:'精彩！找到唯一要点，白棋无法做活，黑棋大获全胜！'
+  }
+];
+
+// ═══════════════════════════════════════════════════════
+// 死活题控制器
+// ═══════════════════════════════════════════════════════
+let tsGame = null, tsRenderer = null, tsLevel = null;
+let tsAttempts = 0, tsSolved = false;
+let completedTsumego = new Set(JSON.parse(localStorage.getItem('xtgo_ts') || '[]'));
+
+function renderTsChapters() {
+  const grid = document.getElementById('ts-chapters-grid');
+  grid.innerHTML = '';
+  TS_CHAPTERS.forEach(ch => {
+    const prog = ch.levels.filter(l => completedTsumego.has(l)).length;
+    const card = document.createElement('div');
+    card.className = 'chapter-card';
+    card.innerHTML = `<div class="chapter-icon">${ch.icon}</div><div class="chapter-name">${ch.name}</div><div class="chapter-progress">${prog}/${ch.levels.length} 完成</div>`;
+    card.onclick = () => showTsLevelSelect(ch);
+    grid.appendChild(card);
+  });
+}
+
+function showTsLevelSelect(ch) {
+  document.getElementById('ts-lvl-title').textContent = `${ch.icon} ${ch.name}`;
+  const grid = document.getElementById('ts-levels-grid');
+  grid.innerHTML = '';
+  ch.levels.forEach((lid, i) => {
+    const lv = TSUMEGO[lid];
+    const done = completedTsumego.has(lid);
+    const firstUndone = ch.levels.findIndex(l => !completedTsumego.has(l));
+    const locked = i > firstUndone + 1;
+    const btn = document.createElement('div');
+    btn.className = 'level-btn' + (done?' completed':(locked?' locked':(i===firstUndone?' cur':'')));
+    btn.innerHTML = `<div class="lnum" style="color:${done?'var(--green)':'#e57373'}">${done?'✓':lid+1}</div><div style="font-size:.72rem;margin-top:3px">${lv.title}</div>`;
+    if (!locked) btn.onclick = () => startTsumego(lid);
+    grid.appendChild(btn);
+  });
+  showScreen('tsumego-level-screen');
+}
+
+function startTsumego(lid) {
+  tsLevel = TSUMEGO[lid];
+  tsGame = new GoGame(tsLevel.boardSize);
+  tsRenderer = new BoardRenderer(document.getElementById('tsumego-canvas'));
+  tsRenderer.setup(tsLevel.boardSize);
+  tsAttempts = 0; tsSolved = false;
+
+  for (const [r,c,col] of tsLevel.setup) tsGame.board[r][c] = col;
+  tsGame.currentPlayer = tsLevel.playerColor;
+
+  // 保存初始状态
+  tsGame._initBoard = tsGame.board.map(r=>[...r]);
+
+  const ch = TS_CHAPTERS.find(c=>c.levels.includes(lid));
+  const chIdx = ch ? TS_CHAPTERS.indexOf(ch)+1 : 1;
+  const lvIdx = ch ? ch.levels.indexOf(lid)+1 : 1;
+  document.getElementById('ts-tag').textContent = `死活题 · ${ch?ch.name:'未知'} · 第${lvIdx}题`;
+  document.getElementById('ts-title').textContent = tsLevel.title;
+  document.getElementById('ts-desc').textContent = tsLevel.desc;
+  document.getElementById('ts-goal').textContent = tsLevel.goalText;
+  document.getElementById('ts-hint').textContent = tsLevel.hint;
+  document.getElementById('ts-hint').classList.remove('on');
+  document.getElementById('ts-result').className = 'ts-result';
+  document.getElementById('ts-result').textContent = '';
+  document.getElementById('ts-next-btn').style.display = 'none';
+  document.getElementById('ts-attempts').textContent = '';
+
+  // 高亮目标棋串
+  if (tsLevel.targetStone) {
+    const tg = tsGame.getGroup(tsLevel.targetStone[0], tsLevel.targetStone[1]);
+    tsRenderer.highlights = tg.stones.map(([r,c])=>({r,c,type:'target'}));
+  }
+
+  setupTsCanvas();
+  showScreen('tsumego-game-screen');
+  tsRenderer.draw(tsGame);
+}
+
+function setupTsCanvas() {
+  const cv = document.getElementById('tsumego-canvas');
+  cv.style.touchAction = 'none';
+  cv.onpointerdown  = e => { e.preventDefault(); handleTsClick(e); };
+  cv.onpointermove  = e => {
+    if (!tsRenderer||!tsGame||tsSolved) return;
+    const pt = tsRenderer.getIntersection(e.clientX, e.clientY);
+    tsRenderer.hover = pt ? {r:pt[0], c:pt[1]} : null;
+    tsRenderer.hoverColor = tsGame.currentPlayer;
+    tsRenderer.draw(tsGame);
+  };
+  cv.onpointerleave = () => { if (tsRenderer) { tsRenderer.hover=null; tsRenderer.draw(tsGame); } };
+}
+
+function handleTsClick(e) {
+  if (!tsGame||!tsRenderer||tsSolved) return;
+  const pt = tsRenderer.getIntersection(e.clientX, e.clientY);
+  if (!pt) return;
+  const [r,c] = pt;
+  if (!tsGame.isValidMove(r,c,tsGame.currentPlayer)) return;
+
+  tsGame.placeStone(r,c);
+  tsRenderer.lastMove = [r,c];
+  tsRenderer.hover = null;
+
+  // 更新高亮：显示目标棋串
+  updateTsHighlights();
+  tsRenderer.draw(tsGame);
+
+  // 检查目标
+  if (checkTsGoal()) {
+    tsSolved = true;
+    completedTsumego.add(tsLevel.id);
+    localStorage.setItem('xtgo_ts', JSON.stringify([...completedTsumego]));
+    document.getElementById('ts-result').className = 'ts-result correct';
+    document.getElementById('ts-result').textContent = '✓ 正确！' + tsLevel.completion;
+    document.getElementById('ts-next-btn').style.display = '';
+    return;
+  }
+
+  // 如果是kill题且目标仍存活，AI防守一手
+  if (tsLevel.goal === 'kill' && !tsSolved) {
+    setTimeout(() => {
+      const defColor = 3 - tsLevel.playerColor;
+      const defMove = getTsDefenseMove(defColor);
+      if (defMove) {
+        tsGame.placeStone(defMove[0],defMove[1]);
+        tsRenderer.lastMove = defMove;
+        updateTsHighlights();
+        tsRenderer.draw(tsGame);
+        if (checkTsGoal()) {
+          tsSolved = true;
+          completedTsumego.add(tsLevel.id);
+          localStorage.setItem('xtgo_ts', JSON.stringify([...completedTsumego]));
+          document.getElementById('ts-result').className = 'ts-result correct';
+          document.getElementById('ts-result').textContent = '✓ 正确！' + tsLevel.completion;
+          document.getElementById('ts-next-btn').style.display = '';
+        }
+      }
+    }, 350);
+  }
+
+  // 错误尝试计数（live题：若10手仍未做活）
+  tsAttempts++;
+  if (tsAttempts >= 10 && !tsSolved) {
+    document.getElementById('ts-result').className = 'ts-result wrong';
+    document.getElementById('ts-result').textContent = '未找到正解，点击"重置"重试，或查看提示。';
+    document.getElementById('ts-attempts').textContent = `已尝试${tsAttempts}手`;
+  }
+}
+
+function checkTsGoal() {
+  if (!tsLevel||!tsGame) return false;
+  if (tsLevel.goal === 'kill') {
+    // 目标棋串是否已被提走
+    const [tr,tc] = tsLevel.targetStone;
+    if (tsGame.board[tr][tc] === 0) return true; // 已被提
+    const g = tsGame.getGroup(tr,tc);
+    // 或者目标棋串0气（下一手必死）
+    return g.liberties.length === 0;
+  }
+  if (tsLevel.goal === 'live') {
+    // 玩家棋串是否已有2+眼
+    return countEyes(tsGame, tsLevel.playerColor) >= 2;
+  }
+  return false;
+}
+
+function getTsDefenseMove(color) {
+  // 防守：优先给目标棋串增加气（对kill题为白棋防守）
+  const moves = tsGame.getValidMoves(color);
+  if (!moves.length) return null;
+  const [tr,tc] = tsLevel.targetStone;
+  if (tsGame.board[tr][tc] === 0) return null; // 已死
+  const g = tsGame.getGroup(tr,tc);
+  if (g.liberties.length > 0) {
+    // 优先把气多的连接棋子
+    const liberties = g.liberties;
+    const valid = liberties.filter(([r,c])=>tsGame.isValidMove(r,c,color));
+    if (valid.length) return valid[0];
+  }
+  return moves[Math.floor(Math.random()*Math.min(moves.length,5))];
+}
+
+function updateTsHighlights() {
+  if (!tsLevel||!tsGame||!tsLevel.targetStone) return;
+  const [tr,tc] = tsLevel.targetStone;
+  if (tsGame.board[tr][tc] === 0) { tsRenderer.highlights = []; return; }
+  const g = tsGame.getGroup(tr,tc);
+  tsRenderer.highlights = g.stones.map(([r,c])=>({r,c,type:'target'}));
+}
+
+function tsumegoReset() {
+  if (!tsLevel) return;
+  startTsumego(tsLevel.id);
+}
+
+function toggleTsHint() { document.getElementById('ts-hint').classList.toggle('on'); }
+
+function tsNextLevel() {
+  if (!tsLevel) return;
+  const ch = TS_CHAPTERS.find(c=>c.levels.includes(tsLevel.id));
+  if (!ch) return;
+  const idx = ch.levels.indexOf(tsLevel.id);
+  if (idx < ch.levels.length-1) {
+    startTsumego(ch.levels[idx+1]);
+  } else {
+    // 找下一章
+    const chIdx = TS_CHAPTERS.indexOf(ch);
+    if (chIdx < TS_CHAPTERS.length-1) {
+      showTsLevelSelect(TS_CHAPTERS[chIdx+1]);
+    } else {
+      showScreen('tsumego-chapter-screen');
+    }
+  }
+}
+
+showScreen('menu-screen');
+
+// ── PWA Service Worker 注册 ──
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+
+// ── 浏览器 AI 预热：打开对战界面时静默预加载模型 ──
+// （由 startBattle 内 BrowserKataGoAI 构造时自动触发 _ensureModel）
+</script>
+</body>
+</html>
+
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ZXT围棋">
