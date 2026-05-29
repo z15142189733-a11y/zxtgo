@@ -627,6 +627,7 @@ class GoAI {
   // UCB1 + RAVE  Monte-Carlo Tree Search
   // ══════════════════════════════════════════════════════
   _mcts(game, color, cands, N) {
+    if (!cands) cands = game.getValidMoves(color);
     if (!cands.length) return null;
     const n = cands.length;
     const wins      = new Float64Array(n);
@@ -1789,7 +1790,16 @@ class BrowserKataGoAI {
         return this.fallback._mcts(game, color, topCands, mctsN);
       }
 
-      // ── 13×13 / 19×19：直接 NN 落子 ────────────────────────
+      // ── 13×13 / 19×19：NN 落子（带 MCTS fallback）──────────
+      // 若所有 policy 值都在 -50 以下，视为 NN 输出异常，改用强 MCTS
+      const policyMax = validMoves.reduce((mx,[r,c]) => Math.max(mx, policy[r*N+c]), -Infinity);
+      if (policyMax < -50) {
+        console.warn('[KataGo] policy 全部异常(max=' + policyMax.toFixed(1) + ')，降级至 MCTS');
+        const mctsN = this.diff==='hard' ? 4000 : this.diff==='medium' ? 2000 : 600;
+        this._setBadge('⚙️ MCTS 深度搜索中…', '#5ba85b');
+        if(onStatus) onStatus('local_mcts');
+        return this.fallback._mcts(game, color, null, mctsN);
+      }
       this._setBadge(`🧠 KataGo 神经网络 (${N}×${N})`, '#7b68ee');
       // 难度噪声：挑战≈确定性，进阶加扰动
       const noise = this.diff==='medium' ? 1.5 : 0.15;
