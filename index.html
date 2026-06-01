@@ -1778,12 +1778,15 @@ class BrowserKataGoAI {
       // 用 NN policy 筛选最有价值的候选手，再用 MCTS 做战术校验
       // 既保留 NN 的布局直觉，又通过 MCTS 弥补小棋盘偶发误判
       if (N === 9) {
-        const K = Math.min(20, validMoves.length);
-        const topCands = validMoves
-          .map(([r,c]) => ({ move:[r,c], p: policy[r*N+c] }))
-          .sort((a,b) => b.p - a.p)
-          .slice(0, K)
-          .map(x => x.move);
+        // 直接扫空格+policy值（同19×19，避免validMoves坐标问题）
+        const MASK9 = -4999.9;
+        const allCands9 = [];
+        for (let r=0; r<N; r++) for (let c=0; c<N; c++)
+          if (game.board[r][c]===0) allCands9.push([r,c,policy[r*N+c]]);
+        const K = Math.min(20, allCands9.length);
+        const topCands = allCands9
+          .sort((a,b) => b[2]-a[2]).slice(0, K)
+          .map(([r,c]) => [r,c]);
         const mctsN = this.diff==='hard' ? 2500 : this.diff==='medium' ? 1000 : 400;
         this._setBadge('🧠 KataGo + MCTS', '#7b68ee');
         if(onStatus) onStatus('browser_thinking');
@@ -1792,7 +1795,7 @@ class BrowserKataGoAI {
 
       // ── 13×13 / 19×19：NN 落子（带 MCTS fallback）──────────
       // 直接扫描棋盘空格 + policy > -4990（避免 validMoves 坐标不一致问题）
-      const MASK_THR = -4990;
+      const MASK_THR = -4999.9;  // KataGo masked positions are ≤ -5000
       const nnCands = [];
       for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
         if (game.board[r][c] === 0) {
