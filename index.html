@@ -1813,15 +1813,21 @@ class BrowserKataGoAI {
         return this.fallback._mcts(game, color, null, mctsN);
       }
       this._setBadge(`🧠 KataGo 神经网络 (${N}×${N})`, '#7b68ee');
-      // 难度噪声：挑战≈确定性，进阶加扰动
-      const noise = this.diff==='medium' ? 1.5 : 0.15;
-      let best=null, bestScore=-Infinity;
-      for(const[r,c,p] of nnCands) {
-        const score = p + (Math.random()-0.5)*noise;
-        if(score>bestScore) { bestScore=score; best=[r,c]; }
+      // 软 max 温度采样：让 AI 按概率分布选手而非纯贪心
+      // 温度越低=越确定性；挑战模式低温（接近最优），进阶模式高温（更多样）
+      const temp = this.diff==='medium' ? 0.3 : 0.08;
+      const pMax = Math.max(...nnCands.map(x=>x[2]));
+      const weights = nnCands.map(([,, p]) => Math.exp((p - pMax) / temp));
+      const totalW = weights.reduce((a,b)=>a+b,0);
+      const rand = Math.random() * totalW;
+      let cum = 0, best = nnCands[nnCands.length-1];
+      for (let i = 0; i < nnCands.length; i++) {
+        cum += weights[i];
+        if (cum >= rand) { best = nnCands[i]; break; }
       }
+      best = [best[0], best[1]];
       // 验证 best 是否合法（不是自杀、不是劫），否则退回 validMoves
-      if (best && !game.isValidMove(best[0], best[1], color)) {
+      if (!game.isValidMove(best[0], best[1], color)) {
         best = validMoves.length ? validMoves[0] : null;
       }
       return best;
