@@ -1,5 +1,5 @@
 // ZXT GO Service Worker — 离线缓存
-const CACHE_NAME = 'zxtgo-v3';
+const CACHE_NAME = 'zxtgo-v4';
 const ASSETS = [
   './',
   './index.html',
