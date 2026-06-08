@@ -65,7 +65,30 @@ body{
   width:100%;max-width:400px;
   padding:40px 24px;
 }
+/* ─── LOGO ICON ─── */
 .logo{text-align:center;margin-bottom:48px}
+.logo-icon-wrap{
+  display:flex;justify-content:center;margin-bottom:20px;
+}
+.logo-icon{
+  width:120px;height:120px;
+  border-radius:26px;
+  object-fit:cover;
+  box-shadow:
+    0 0 0 2px rgba(212,168,67,.5),
+    0 0 0 4px rgba(212,168,67,.15),
+    0 12px 40px rgba(0,0,0,.55),
+    0 0 60px rgba(212,168,67,.12);
+  transition:transform .3s cubic-bezier(.34,1.56,.64,1), box-shadow .3s;
+}
+.logo-icon:hover{
+  transform:scale(1.06) translateY(-3px);
+  box-shadow:
+    0 0 0 2px rgba(212,168,67,.7),
+    0 0 0 5px rgba(212,168,67,.2),
+    0 18px 50px rgba(0,0,0,.6),
+    0 0 80px rgba(212,168,67,.18);
+}
 .logo h1{
   font-size:3.8rem;font-weight:900;letter-spacing:-1px;
   background:linear-gradient(135deg,#d4a843 0%,#f0cc70 50%,#b8901e 100%);
@@ -404,6 +427,30 @@ body{
     font-size:.84rem;font-weight:600;color:var(--text-mid);
     letter-spacing:.5px;
   }
+  /* 第三行：AI 思考状态（有内容才显示） */
+  .m-ai-status{
+    order:4;flex:0 0 100%;
+    display:none;
+    align-items:center;gap:8px;
+    margin-top:2px;
+    font-size:.8rem;font-weight:600;
+    color:#7ec8e3;letter-spacing:.3px;
+    padding:6px 10px;border-radius:8px;
+    background:rgba(33,150,243,.08);
+    border:1px solid rgba(33,150,243,.18);
+  }
+  .m-ai-status.active{display:flex}
+  .m-ai-status.cloud{color:#7ec8e3;background:rgba(33,150,200,.08);border-color:rgba(33,150,200,.2)}
+  .m-ai-status.neural{color:#b29cf0;background:rgba(136,117,240,.08);border-color:rgba(136,117,240,.2)}
+  .m-ai-status.local{color:#a0c8a0;background:rgba(74,180,74,.08);border-color:rgba(74,180,74,.18)}
+  /* 旋转指示器 */
+  @keyframes m-spin{to{transform:rotate(360deg)}}
+  .m-ai-spin{
+    display:inline-block;
+    animation:m-spin 1s linear infinite;
+    font-style:normal;
+  }
+
   /* 第二行：回合指示（full width） */
   .m-turn-info{
     order:3;flex:0 0 100%;
@@ -495,6 +542,9 @@ body{
 <div id="menu-screen" class="screen active">
   <div class="menu-inner">
     <div class="logo">
+      <div class="logo-icon-wrap">
+        <img class="logo-icon" src="icon-512.png" alt="ZXT GO 图标">
+      </div>
       <h1>ZXT GO</h1>
       <div class="logo-badge">围棋 AI 学习平台</div>
       <div class="logo-stones">
@@ -580,6 +630,7 @@ body{
       <span id="m-game-turn">你的回合</span>
     </div>
     <span class="m-stats" id="m-game-goal">目标</span>
+    <div class="m-ai-status" id="m-game-status"></div>
   </div>
   <div class="game-main">
     <canvas id="board-canvas"></canvas>
@@ -749,6 +800,7 @@ body{
       <span id="m-batt-turn">你的回合</span>
     </div>
     <span class="m-stats" id="m-batt-stats">●0 ○0 · 0步</span>
+    <div class="m-ai-status" id="m-batt-status"></div>
   </div>
   <div class="game-main">
     <canvas id="battle-canvas"></canvas>
@@ -2442,6 +2494,7 @@ function handleCampClick(e) {
   // AI回应
   aiThinking = true;
   document.getElementById('ai-think-label').textContent = 'AI思考中…';
+  _setMobileAIStatus('m-game-status', '本地 AI 思考中', 'local');
   setTimeout(() => {
     const aiMove = campGame._ai.getBestMove(campGame, campGame.currentPlayer);
     if (aiMove) { campGame.placeStone(aiMove[0],aiMove[1]); campRenderer.lastMove=aiMove; }
@@ -2449,6 +2502,7 @@ function handleCampClick(e) {
     campRenderer.draw(campGame);
     aiThinking = false;
     document.getElementById('ai-think-label').textContent = '';
+    _setMobileAIStatus('m-game-status', null);
     updateCampStatus();
     checkCampGoal();
   }, 500);
@@ -2635,34 +2689,70 @@ async function handleBattleClick(e) {
   await _doAIMove();
 }
 
+// 更新移动端 AI 状态栏（顶部信息栏第三行）
+function _setMobileAIStatus(id, text, type) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (!text) {
+    el.className = 'm-ai-status';
+    el.innerHTML = '';
+  } else {
+    el.className = 'm-ai-status active ' + (type || '');
+    el.innerHTML = `<i class="m-ai-spin">⟳</i> ${text}`;
+  }
+}
+
 async function _doAIMove() {
   aiThinking=true;
   const thinkEl = document.getElementById('b-ai-think');
+  const MSID = 'm-batt-status';  // 移动端状态元素
   let m;
+
   if (battleAI instanceof CloudKataGoAI) {
     thinkEl.textContent = '🌐 云端 KataGo 思考中…';
+    _setMobileAIStatus(MSID, '云端 KataGo 思考中', 'cloud');
     m = await battleAI.getBestMoveAsync(battGame, 2, (src) => {
-      if (src === 'cloud_thinking')  thinkEl.textContent = '🌐 云端 KataGo 思考中…';
-      else if (src === 'browser_loading') thinkEl.textContent = '⏳ 加载神经网络模型（首次约30秒）…';
-      else if (src === 'browser_thinking') thinkEl.textContent = '🧠 KataGo 神经网络思考中…';
-      else if (src === 'local_mcts') thinkEl.textContent = '⚙️ MCTS 深度搜索中…';
+      if (src === 'cloud_thinking') {
+        thinkEl.textContent = '🌐 云端 KataGo 思考中…';
+        _setMobileAIStatus(MSID, '云端 KataGo 思考中', 'cloud');
+      } else if (src === 'browser_loading') {
+        thinkEl.textContent = '⏳ 加载神经网络模型（首次约30秒）…';
+        _setMobileAIStatus(MSID, '加载神经网络（首次约30秒）', 'neural');
+      } else if (src === 'browser_thinking') {
+        thinkEl.textContent = '🧠 KataGo 神经网络思考中…';
+        _setMobileAIStatus(MSID, '神经网络 AI 思考中', 'neural');
+      } else if (src === 'local_mcts') {
+        thinkEl.textContent = '⚙️ MCTS 深度搜索中…';
+        _setMobileAIStatus(MSID, 'MCTS 深度搜索', 'local');
+      }
     });
   } else if (battleAI instanceof BrowserKataGoAI) {
     thinkEl.textContent = '⏳ 加载 AI 模型…';
+    _setMobileAIStatus(MSID, '加载 AI 模型…', 'neural');
     m = await battleAI.getBestMoveAsync(battGame, 2, (src) => {
-      if (src === 'browser_loading') thinkEl.textContent = '⏳ 加载神经网络模型（首次约30秒）…';
-      else if (src === 'browser_thinking') thinkEl.textContent = '🧠 KataGo 神经网络思考中…';
-      else if (src === 'local_mcts') thinkEl.textContent = '⚙️ MCTS 深度搜索中…';
-      else if (src === 'local') thinkEl.textContent = '⚙️ MCTS 深度搜索中…';
+      if (src === 'browser_loading') {
+        thinkEl.textContent = '⏳ 加载神经网络模型（首次约30秒）…';
+        _setMobileAIStatus(MSID, '加载神经网络（首次约30秒）', 'neural');
+      } else if (src === 'browser_thinking') {
+        thinkEl.textContent = '🧠 KataGo 神经网络思考中…';
+        _setMobileAIStatus(MSID, '神经网络 AI 思考中', 'neural');
+      } else if (src === 'local_mcts' || src === 'local') {
+        thinkEl.textContent = '⚙️ MCTS 深度搜索中…';
+        _setMobileAIStatus(MSID, 'MCTS 深度搜索', 'local');
+      }
     });
   } else {
     thinkEl.textContent = '🤖 本地 AI 思考中…';
-    await new Promise(r => setTimeout(r, 50));  // 让浏览器先刷新文字
+    _setMobileAIStatus(MSID, '本地 AI 思考中', 'local');
+    await new Promise(r => setTimeout(r, 50));
     m = battleAI.getBestMove(battGame, 2);
   }
+
   // AI 认输处理
   if (m === AI_RESIGN) {
-    aiThinking = false; thinkEl.textContent = '';
+    aiThinking = false;
+    thinkEl.textContent = '';
+    _setMobileAIStatus(MSID, null);
     aiResignBattle(); return;
   }
   if(m){
@@ -2676,6 +2766,7 @@ async function _doAIMove() {
   }
   battRenderer.draw(battGame); aiThinking=false;
   thinkEl.textContent='';
+  _setMobileAIStatus(MSID, null);
   updateBattleStatus();
   if(battGame.consecutivePasses>=2) endBattle();
 }
