@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Z.X.T 围棋</title>
+<title>ZXT GO · 围棋 AI</title>
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -12,185 +12,430 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --bg:#0f0f1a;--panel:#1a1a2e;--accent:#c9a84c;--accent2:#7b68ee;
+  --bg:#07070f;
+  --panel:#0f0f1c;
+  --panel2:#161628;
+  --accent:#d4a843;
+  --accent2:#8875f0;
   --board0:#dbb86a;--board1:#c9a84c;
-  --text:#e8e8f0;--text-dim:#7777aa;
-  --green:#4caf50;--red:#e53935;
+  --text:#f0f0f8;
+  --text-dim:#5a5a80;
+  --text-mid:#9090b8;
+  --border:rgba(255,255,255,.07);
+  --green:#4ade80;--red:#f87171;
+  --shadow-gold:rgba(212,168,67,.18);
 }
-body{background:var(--bg);color:var(--text);font-family:'PingFang SC','Microsoft YaHei','Segoe UI',system-ui,sans-serif;height:100dvh;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'PingFang SC','Microsoft YaHei','Segoe UI',system-ui,sans-serif;
+  height:100dvh;height:100vh;
+  overflow:hidden;
+  display:flex;flex-direction:column;
+  -webkit-font-smoothing:antialiased;
+}
 
 /* ─── SCREENS ─── */
-.screen{display:none;flex-direction:column;align-items:center;justify-content:center;height:100dvh;height:100vh;padding:20px}
+.screen{display:none;flex-direction:column;align-items:center;justify-content:center;height:100dvh;height:100vh;padding:20px;overflow-y:auto}
 .screen.active{display:flex}
 
 /* ─── MENU ─── */
-#menu-screen{background:radial-gradient(ellipse at 40% 40%,#1e1e40 0%,#0f0f1a 65%)}
-.logo{text-align:center;margin-bottom:44px;position:relative}
-.logo h1{font-size:3.2rem;font-weight:800;letter-spacing:4px;color:var(--accent);text-shadow:0 0 40px rgba(201,168,76,.3)}
-.logo-sub{color:var(--text-dim);font-size:.82rem;margin-top:8px;letter-spacing:6px}
-.logo-deco{display:flex;gap:6px;justify-content:center;margin-top:14px}
-.logo-deco span{width:10px;height:10px;border-radius:50%}
-.logo-deco span:nth-child(odd){background:radial-gradient(circle at 35% 35%,#555,#111)}
-.logo-deco span:nth-child(even){background:radial-gradient(circle at 35% 35%,#fff,#ccc)}
-.menu-btn{display:block;width:240px;padding:14px 0;margin:9px auto;border:none;border-radius:14px;font-size:1rem;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:2px}
-.btn-primary{background:linear-gradient(135deg,#c9a84c,#e8c060);color:#1a1000}
-.btn-secondary{background:var(--panel);color:var(--accent);border:1px solid rgba(201,168,76,.4)}
-.menu-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(201,168,76,.25)}
+#menu-screen{
+  padding:0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%,rgba(136,117,240,.08) 0%,transparent 70%),
+    radial-gradient(ellipse 60% 50% at 20% 80%,rgba(212,168,67,.06) 0%,transparent 60%),
+    var(--bg);
+  position:relative;overflow:hidden;
+}
+/* subtle go-board grid in background */
+#menu-screen::before{
+  content:'';position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
+  background-size:40px 40px;
+  mask-image:radial-gradient(ellipse 70% 80% at 50% 50%,black 0%,transparent 100%);
+  pointer-events:none;
+}
+.menu-inner{
+  position:relative;z-index:1;
+  display:flex;flex-direction:column;align-items:center;
+  width:100%;max-width:400px;
+  padding:40px 24px;
+}
+.logo{text-align:center;margin-bottom:48px}
+.logo h1{
+  font-size:3.8rem;font-weight:900;letter-spacing:-1px;
+  background:linear-gradient(135deg,#d4a843 0%,#f0cc70 50%,#b8901e 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+  filter:drop-shadow(0 0 30px rgba(212,168,67,.25));
+}
+.logo-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  margin-top:10px;padding:4px 12px;
+  background:rgba(136,117,240,.12);border:1px solid rgba(136,117,240,.25);
+  border-radius:20px;font-size:.72rem;color:#a89cf0;letter-spacing:2px;
+}
+.logo-stones{display:flex;gap:8px;justify-content:center;margin-top:16px}
+.logo-stones span{
+  width:12px;height:12px;border-radius:50%;
+  transition:transform .3s;
+}
+.logo-stones span:hover{transform:scale(1.4)}
+.logo-stones span:nth-child(odd){background:radial-gradient(circle at 33% 33%,#555,#0a0a0a);box-shadow:0 2px 6px rgba(0,0,0,.6)}
+.logo-stones span:nth-child(even){background:radial-gradient(circle at 33% 33%,#fff,#d0d0d0);box-shadow:0 2px 6px rgba(0,0,0,.3)}
+
+.menu-nav{display:flex;flex-direction:column;gap:12px;width:100%}
+.menu-btn{
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  width:100%;padding:16px 20px;
+  border:none;border-radius:16px;
+  font-size:1rem;font-weight:700;cursor:pointer;
+  transition:all .22s cubic-bezier(.34,1.56,.64,1);
+  letter-spacing:.5px;position:relative;overflow:hidden;
+}
+.menu-btn::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,.08),transparent);
+  opacity:0;transition:opacity .2s;
+}
+.menu-btn:hover::after{opacity:1}
+.menu-btn:hover{transform:translateY(-2px) scale(1.01);box-shadow:0 12px 32px rgba(0,0,0,.4)}
+.menu-btn:active{transform:scale(.97)}
+.btn-primary{background:linear-gradient(135deg,#c9913a,#e8c060);color:#1a0e00;box-shadow:0 4px 20px rgba(212,168,67,.2)}
+.btn-tsumego{background:linear-gradient(135deg,#8b1a1a,#c0392b);color:#fff;box-shadow:0 4px 20px rgba(192,57,43,.2)}
+.btn-secondary{
+  background:rgba(255,255,255,.04);color:var(--text);
+  border:1px solid var(--border);
+  backdrop-filter:blur(8px);
+}
+.btn-secondary:hover{border-color:rgba(136,117,240,.4);background:rgba(136,117,240,.08)}
+.menu-btn-icon{font-size:1.2rem;line-height:1}
+.menu-btn-label{flex:1;text-align:left}
+.menu-btn-arrow{opacity:.5;font-size:.85rem}
+
+/* ─── SCREEN HEADERS ─── */
+.screen-title{
+  font-size:1.4rem;font-weight:800;
+  color:var(--text);
+  margin-bottom:4px;text-align:center;
+  letter-spacing:.5px;
+}
+.screen-sub{color:var(--text-dim);font-size:.82rem;margin-bottom:16px;text-align:center;line-height:1.6}
 
 /* ─── CHAPTER SELECT ─── */
-#chapter-screen{gap:16px}
-.screen-title{font-size:1.5rem;font-weight:800;color:var(--accent);margin-bottom:4px;text-align:center;letter-spacing:2px}
-.screen-sub{color:var(--text-dim);font-size:.82rem;margin-bottom:12px;text-align:center}
-.chapters-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;max-width:900px;width:100%}
-.chapter-card{background:var(--panel);border:1px solid #252545;border-radius:16px;padding:20px 14px;cursor:pointer;transition:all .2s;text-align:center}
-.chapter-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 24px rgba(201,168,76,.12)}
-.chapter-card.locked{opacity:.35;cursor:not-allowed;pointer-events:none}
-.chapter-icon{font-size:2rem;margin-bottom:8px}
-.chapter-name{font-weight:700;font-size:.95rem;color:var(--text)}
-.chapter-progress{font-size:.78rem;color:var(--accent);margin-top:6px}
+#chapter-screen{gap:0;padding:24px 20px}
+.chapters-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+  gap:12px;max-width:860px;width:100%;
+  margin-bottom:16px;
+}
+.chapter-card{
+  background:var(--panel2);
+  border:1px solid var(--border);
+  border-radius:18px;padding:22px 16px;
+  cursor:pointer;transition:all .2s;text-align:center;
+}
+.chapter-card:hover{
+  border-color:rgba(212,168,67,.35);
+  transform:translateY(-3px);
+  box-shadow:0 12px 32px rgba(0,0,0,.3),0 0 0 1px rgba(212,168,67,.1);
+  background:rgba(212,168,67,.04);
+}
+.chapter-card.locked{opacity:.3;cursor:not-allowed;pointer-events:none}
+.chapter-icon{font-size:2.2rem;margin-bottom:10px}
+.chapter-name{font-weight:700;font-size:.92rem;color:var(--text)}
+.chapter-progress{font-size:.75rem;color:var(--accent);margin-top:6px;font-weight:600}
 
 /* ─── LEVEL SELECT ─── */
-#level-screen{gap:20px}
-.levels-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:12px;max-width:680px;width:100%}
-.level-btn{aspect-ratio:1;border:2px solid #252545;border-radius:12px;background:var(--panel);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:all .2s;font-size:.78rem;color:var(--text-dim)}
-.level-btn .lnum{font-size:1.3rem;font-weight:800;color:var(--text)}
-.level-btn.completed{border-color:var(--green);background:rgba(76,175,80,.06)}
+#level-screen{gap:0;padding:24px 20px}
+.levels-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));
+  gap:10px;max-width:640px;width:100%;margin-bottom:16px;
+}
+.level-btn{
+  aspect-ratio:1;
+  border:1.5px solid var(--border);
+  border-radius:14px;background:var(--panel2);
+  cursor:pointer;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  transition:all .2s;font-size:.75rem;color:var(--text-dim);
+}
+.level-btn .lnum{font-size:1.25rem;font-weight:800;color:var(--text-mid)}
+.level-btn.completed{border-color:rgba(74,222,128,.3);background:rgba(74,222,128,.05)}
 .level-btn.completed .lnum{color:var(--green)}
-.level-btn.cur{border-color:var(--accent);background:rgba(201,168,76,.08)}
+.level-btn.cur{border-color:rgba(212,168,67,.5);background:rgba(212,168,67,.07)}
 .level-btn.cur .lnum{color:var(--accent)}
-.level-btn.locked{opacity:.3;cursor:not-allowed;pointer-events:none}
-.level-btn:not(.locked):hover{border-color:var(--accent);transform:scale(1.06)}
+.level-btn.locked{opacity:.25;cursor:not-allowed;pointer-events:none}
+.level-btn:not(.locked):hover{border-color:rgba(212,168,67,.5);transform:scale(1.07);background:rgba(212,168,67,.06)}
 
-/* ─── GAME SCREEN ─── */
-#game-screen{flex-direction:row;gap:0;padding:0;align-items:stretch;justify-content:flex-start;height:100dvh;height:100vh;overflow:hidden}
-.sidebar{width:280px;min-width:260px;background:var(--panel);display:flex;flex-direction:column;padding:18px 16px;gap:11px;overflow-y:auto;border-right:1px solid #22224a}
+/* ─── GAME + BATTLE SCREENS ─── */
+#game-screen,#battle-screen,#tsumego-game-screen{
+  flex-direction:row;gap:0;padding:0;
+  align-items:stretch;justify-content:flex-start;
+  height:100dvh;height:100vh;overflow:hidden;
+}
+.sidebar{
+  width:270px;min-width:250px;
+  background:var(--panel);
+  display:flex;flex-direction:column;
+  padding:16px 14px;gap:10px;
+  overflow-y:auto;
+  border-right:1px solid var(--border);
+}
 .game-main{flex:1;display:flex;align-items:center;justify-content:center;background:var(--bg);position:relative}
 
-/* sidebar pieces */
-.s-tag{font-size:.7rem;color:var(--text-dim);letter-spacing:2px}
-.s-title{font-size:1.15rem;font-weight:800;color:var(--accent);line-height:1.3;margin-top:2px}
-.concept-box{background:#101028;border-left:3px solid var(--accent2);border-radius:0 8px 8px 0;padding:11px 12px;font-size:.82rem;line-height:1.65;color:#b0b0d8}
-.concept-label{font-size:.68rem;font-weight:700;color:var(--accent2);margin-bottom:5px;letter-spacing:1px}
-.goal-box{background:rgba(201,168,76,.07);border:1px solid rgba(201,168,76,.22);border-radius:10px;padding:11px}
-.goal-label{font-size:.68rem;color:var(--text-dim);letter-spacing:1px;margin-bottom:3px}
-.goal-text{font-size:.88rem;font-weight:700;color:var(--accent)}
-.hint-btn{background:none;border:1px dashed #333360;border-radius:8px;padding:7px 11px;color:var(--text-dim);cursor:pointer;font-size:.8rem;transition:all .2s;text-align:left;width:100%}
-.hint-btn:hover{border-color:var(--accent2);color:var(--accent2)}
-.hint-text{display:none;font-size:.8rem;color:#8888bb;margin-top:6px;line-height:1.6;padding:8px;background:#0c0c22;border-radius:6px}
+/* ─── SIDEBAR PIECES ─── */
+.s-tag{font-size:.68rem;color:var(--text-dim);letter-spacing:2px;text-transform:uppercase}
+.s-title{font-size:1.1rem;font-weight:800;color:var(--text);line-height:1.3;margin-top:3px}
+.concept-box{
+  background:rgba(136,117,240,.06);
+  border-left:2.5px solid var(--accent2);
+  border-radius:0 10px 10px 0;
+  padding:10px 12px;font-size:.81rem;line-height:1.7;color:var(--text-mid);
+}
+.concept-label{font-size:.66rem;font-weight:700;color:var(--accent2);margin-bottom:5px;letter-spacing:1px}
+.goal-box{
+  background:rgba(212,168,67,.05);
+  border:1px solid rgba(212,168,67,.18);
+  border-radius:12px;padding:10px 12px;
+}
+.goal-label{font-size:.66rem;color:var(--text-dim);letter-spacing:1px;margin-bottom:3px}
+.goal-text{font-size:.86rem;font-weight:700;color:var(--accent)}
+.hint-btn{
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--border);
+  border-radius:10px;padding:8px 12px;
+  color:var(--text-dim);cursor:pointer;font-size:.8rem;
+  transition:all .2s;text-align:left;width:100%;
+}
+.hint-btn:hover{border-color:rgba(136,117,240,.4);color:var(--accent2);background:rgba(136,117,240,.05)}
+.hint-text{
+  display:none;font-size:.79rem;color:var(--text-mid);
+  margin-top:6px;line-height:1.65;padding:10px 12px;
+  background:rgba(136,117,240,.05);border-radius:8px;
+}
 .hint-text.on{display:block}
-.status-bar{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:9px 12px;background:#0f0f28;border-radius:10px}
+.status-bar{
+  display:flex;gap:8px;align-items:center;justify-content:space-between;
+  padding:10px 12px;
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--border);
+  border-radius:12px;
+}
 .stone-ind{display:flex;align-items:center;gap:7px;font-size:.82rem}
-.sdot{width:15px;height:15px;border-radius:50%;display:inline-block;flex-shrink:0}
-.sdot.b{background:radial-gradient(circle at 35% 35%,#555,#111)}
-.sdot.w{background:radial-gradient(circle at 35% 35%,#fff,#ccc);box-shadow:0 1px 3px rgba(0,0,0,.4)}
-.cap-count{font-size:.78rem;color:var(--text-dim)}
-.inf-toggle{display:flex;align-items:center;gap:8px;font-size:.8rem;color:var(--text-dim);cursor:pointer;padding:5px 8px;border-radius:7px;transition:background .2s}
-.inf-toggle:hover{background:#1a1a3a}
+.sdot{width:14px;height:14px;border-radius:50%;display:inline-block;flex-shrink:0}
+.sdot.b{background:radial-gradient(circle at 33% 33%,#555,#0a0a0a);box-shadow:0 2px 4px rgba(0,0,0,.5)}
+.sdot.w{background:radial-gradient(circle at 33% 33%,#fff,#d8d8d8);box-shadow:0 2px 4px rgba(0,0,0,.3)}
+.cap-count{font-size:.76rem;color:var(--text-dim)}
+.inf-toggle{
+  display:flex;align-items:center;gap:8px;
+  font-size:.79rem;color:var(--text-dim);
+  cursor:pointer;padding:6px 8px;border-radius:8px;
+  transition:background .2s;
+}
+.inf-toggle:hover{background:rgba(255,255,255,.04)}
 .inf-toggle input{accent-color:var(--accent2)}
-.actions{display:flex;flex-direction:column;gap:7px;margin-top:auto}
-.act-btn{padding:9px;border:none;border-radius:10px;cursor:pointer;font-size:.85rem;font-weight:700;transition:all .2s;letter-spacing:1px}
-.btn-pass{background:#1e1e3a;color:var(--text-dim)}
-.btn-pass:hover{background:#2a2a4a;color:var(--text)}
-.btn-undo{background:#1e1e3a;color:var(--text-dim)}
-.btn-undo:hover{background:#2a2a4a;color:var(--text)}
-.btn-back{background:none;color:var(--text-dim);border:1px solid #252545;border-radius:8px;padding:8px;cursor:pointer;font-size:.8rem;transition:all .2s;letter-spacing:1px}
-.btn-back:hover{color:var(--text);border-color:#4a4a6a}
-.ai-thinking{font-size:.78rem;color:var(--accent2);padding:5px 0;min-height:20px}
+.actions{display:flex;flex-direction:column;gap:6px;margin-top:auto}
+.act-btn{
+  padding:10px;border:none;border-radius:12px;
+  cursor:pointer;font-size:.84rem;font-weight:600;
+  transition:all .18s;letter-spacing:.3px;
+}
+.btn-pass{background:rgba(255,255,255,.05);color:var(--text-mid);border:1px solid var(--border)}
+.btn-pass:hover{background:rgba(136,117,240,.12);color:var(--accent2);border-color:rgba(136,117,240,.3)}
+.btn-undo{background:rgba(255,255,255,.05);color:var(--text-mid);border:1px solid var(--border)}
+.btn-undo:hover{background:rgba(212,168,67,.1);color:var(--accent);border-color:rgba(212,168,67,.3)}
+.btn-back{
+  background:none;color:var(--text-dim);
+  border:1px solid var(--border);
+  border-radius:10px;padding:8px 12px;
+  cursor:pointer;font-size:.79rem;transition:all .18s;
+}
+.btn-back:hover{color:var(--text);border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.04)}
+.ai-thinking{font-size:.76rem;color:var(--accent2);padding:4px 0;min-height:20px}
+.score-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:.81rem}
+.score-row:last-child{border-bottom:none}
+.score-lbl{color:var(--text-dim)}
+.score-val{font-weight:700;color:var(--text)}
 
 /* ─── CANVAS ─── */
-#board-canvas,#battle-canvas{border-radius:6px;cursor:crosshair;max-width:calc(100vh - 60px);max-height:calc(100vh - 60px)}
+#board-canvas,#battle-canvas{border-radius:8px;cursor:crosshair;max-width:calc(100vh - 60px);max-height:calc(100vh - 60px)}
 
 /* ─── MODALS ─── */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;align-items:center;justify-content:center}
+.modal-overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.8);
+  backdrop-filter:blur(6px);
+  z-index:100;align-items:center;justify-content:center;
+}
 .modal-overlay.on{display:flex}
-.modal{background:var(--panel);border:1px solid #33335a;border-radius:20px;padding:32px;max-width:440px;width:90%;text-align:center}
-.modal-icon{font-size:2.8rem;margin-bottom:10px}
-.modal-title{font-size:1.4rem;font-weight:800;color:var(--accent);margin-bottom:14px;letter-spacing:1px}
-.modal-body{font-size:.88rem;line-height:1.75;color:#b0b0d8;margin-bottom:22px}
+.modal{
+  background:var(--panel2);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:24px;padding:36px 32px;
+  max-width:420px;width:92%;text-align:center;
+  box-shadow:0 24px 64px rgba(0,0,0,.5);
+}
+.modal-icon{font-size:3rem;margin-bottom:12px}
+.modal-title{font-size:1.4rem;font-weight:800;color:var(--text);margin-bottom:12px}
+.modal-body{font-size:.87rem;line-height:1.8;color:var(--text-mid);margin-bottom:24px}
 .modal-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
-.mbtn{padding:11px 22px;border:none;border-radius:10px;font-size:.88rem;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:1px}
-.mbtn-p{background:linear-gradient(135deg,#c9a84c,#e8c060);color:#1a1000}
-.mbtn-s{background:#252545;color:var(--text)}
-.mbtn:hover{transform:translateY(-2px)}
+.mbtn{
+  padding:12px 24px;border:none;border-radius:12px;
+  font-size:.88rem;font-weight:700;cursor:pointer;
+  transition:all .18s;
+}
+.mbtn-p{background:linear-gradient(135deg,#c9913a,#e8c060);color:#1a0e00;box-shadow:0 4px 16px rgba(212,168,67,.25)}
+.mbtn-s{background:rgba(255,255,255,.07);color:var(--text);border:1px solid var(--border)}
+.mbtn:hover{transform:translateY(-2px) scale(1.02)}
 
-/* ─── BATTLE ─── */
-#battle-screen{flex-direction:row;gap:0;padding:0;align-items:stretch;justify-content:flex-start;height:100dvh;height:100vh;overflow:hidden}
-
-/* ─── DIFFICULTY ─── */
-#difficulty-screen{gap:18px}
-.diff-cards{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;max-width:680px}
-.diff-card{background:var(--panel);border:2px solid #252545;border-radius:16px;padding:22px 28px;cursor:pointer;transition:all .2s;text-align:center;min-width:170px}
-.diff-card:hover{transform:translateY(-3px);box-shadow:0 10px 30px rgba(0,0,0,.35)}
-.diff-card.easy:hover{border-color:#4caf50}
-.diff-card.medium:hover{border-color:#ff9800}
-.diff-card.hard:hover{border-color:#e53935}
-.diff-icon{font-size:2rem;margin-bottom:8px}
-.diff-name{font-size:1.05rem;font-weight:800;letter-spacing:1px}
-.diff-desc{font-size:.78rem;color:var(--text-dim);margin-top:7px;line-height:1.5}
-/* 路数选择 */
-.size-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
-.size-btn{padding:10px 28px;border:2px solid #252545;border-radius:12px;background:var(--panel);color:var(--text-dim);font-size:.95rem;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:2px}
-.size-btn:hover{border-color:var(--accent);color:var(--accent)}
-.size-btn.active{border-color:var(--accent);background:rgba(201,168,76,.1);color:var(--accent)}
-.size-label{font-size:.8rem;color:var(--text-dim);text-align:center;margin-top:2px}
-.score-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #22224a;font-size:.82rem}
-.score-lbl{color:var(--text-dim)}
-.score-val{font-weight:700}
+/* ─── DIFFICULTY SCREEN ─── */
+#difficulty-screen{gap:16px;padding:24px 16px}
+.diff-cards{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;max-width:680px;width:100%}
+.diff-card{
+  background:var(--panel2);
+  border:1.5px solid var(--border);
+  border-radius:20px;padding:24px 22px;
+  cursor:pointer;transition:all .22s cubic-bezier(.34,1.2,.64,1);
+  text-align:center;min-width:165px;flex:1;
+}
+.diff-card:hover{transform:translateY(-4px);box-shadow:0 16px 40px rgba(0,0,0,.35)}
+.diff-card.easy:hover{border-color:rgba(74,222,128,.5);box-shadow:0 16px 40px rgba(74,222,128,.08)}
+.diff-card.medium:hover{border-color:rgba(251,146,60,.5);box-shadow:0 16px 40px rgba(251,146,60,.08)}
+.diff-card.hard:hover{border-color:rgba(248,113,113,.5);box-shadow:0 16px 40px rgba(248,113,113,.08)}
+.diff-icon{font-size:2.2rem;margin-bottom:10px}
+.diff-name{font-size:1.05rem;font-weight:800;letter-spacing:.5px;color:var(--text)}
+.diff-desc{font-size:.76rem;color:var(--text-dim);margin-top:8px;line-height:1.55}
+.size-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.size-btn{
+  padding:10px 26px;
+  border:1.5px solid var(--border);
+  border-radius:12px;background:var(--panel2);
+  color:var(--text-dim);font-size:.92rem;font-weight:700;
+  cursor:pointer;transition:all .18s;letter-spacing:1px;
+}
+.size-btn:hover{border-color:rgba(212,168,67,.4);color:var(--accent)}
+.size-btn.active{
+  border-color:var(--accent);
+  background:rgba(212,168,67,.08);
+  color:var(--accent);
+}
+.size-label{font-size:.78rem;color:var(--text-dim);text-align:center;margin-top:4px;line-height:1.5}
 
 /* ─── TSUMEGO ─── */
-#tsumego-chapter-screen{gap:16px}
-#tsumego-level-screen{gap:20px}
-#tsumego-game-screen{flex-direction:row;gap:0;padding:0;align-items:stretch;justify-content:flex-start;height:100dvh;height:100vh;overflow:hidden}
-.tsumego-tag{font-size:.68rem;color:#e57373;letter-spacing:2px;font-weight:700}
-.ts-goal-box{background:rgba(229,115,115,.08);border:1px solid rgba(229,115,115,.3);border-radius:10px;padding:11px}
-.ts-goal-label{font-size:.68rem;color:#e57373;letter-spacing:1px;margin-bottom:3px}
-.ts-goal-text{font-size:.88rem;font-weight:700;color:#ffcdd2}
-.ts-result{display:none;padding:10px 12px;border-radius:10px;font-size:.85rem;font-weight:700;text-align:center;margin-top:4px}
-.ts-result.correct{display:block;background:rgba(76,175,80,.15);color:#a5d6a7;border:1px solid rgba(76,175,80,.3)}
-.ts-result.wrong{display:block;background:rgba(229,115,115,.12);color:#ef9a9a;border:1px solid rgba(229,115,115,.25)}
-.ts-attempts{font-size:.78rem;color:var(--text-dim);margin-top:4px;text-align:center}
-/* ─── SCROLLBAR ─── */
-::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#333360;border-radius:2px}
+#tsumego-chapter-screen{gap:0;padding:24px 20px}
+#tsumego-level-screen{gap:0;padding:24px 20px}
+.tsumego-tag{font-size:.66rem;color:#f87171;letter-spacing:2px;font-weight:700;text-transform:uppercase}
+.ts-goal-box{
+  background:rgba(248,113,113,.06);
+  border:1px solid rgba(248,113,113,.22);
+  border-radius:12px;padding:10px 12px;
+}
+.ts-goal-label{font-size:.66rem;color:#f87171;letter-spacing:1px;margin-bottom:3px}
+.ts-goal-text{font-size:.86rem;font-weight:700;color:#fecaca}
+.ts-result{
+  display:none;padding:10px 12px;border-radius:10px;
+  font-size:.84rem;font-weight:700;text-align:center;margin-top:4px;
+}
+.ts-result.correct{display:block;background:rgba(74,222,128,.1);color:#86efac;border:1px solid rgba(74,222,128,.25)}
+.ts-result.wrong{display:block;background:rgba(248,113,113,.1);color:#fca5a5;border:1px solid rgba(248,113,113,.2)}
+.ts-attempts{font-size:.76rem;color:var(--text-dim);margin-top:4px;text-align:center}
 
-/* ─── MOBILE LAYOUT ─── */
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+
+/* ─── MOBILE ─── */
 @media(max-width:700px),(pointer:coarse){
   #game-screen,#battle-screen,#tsumego-game-screen{flex-direction:column}
+
   .sidebar{
     width:100%!important;min-width:unset;
-    max-height:220px;border-right:none;
-    border-top:1px solid #22224a;
+    max-height:200px;border-right:none;
+    border-top:1px solid var(--border);
     order:2;overflow-y:auto;
     padding:10px 12px;gap:8px;
   }
   .game-main{order:1;flex:1;min-height:0}
-  /* bigger touch targets */
-  .act-btn{padding:12px;min-height:44px}
-  .btn-back{min-height:40px}
-  .mbtn{padding:13px 20px;min-height:44px}
-  .menu-btn{padding:16px 0;min-height:50px}
-  .hint-btn{min-height:40px;padding:9px 11px}
-  /* canvas fills board area */
-  #board-canvas,#battle-canvas,#tsumego-canvas{
-    max-width:calc(100vw - 8px)!important;
-    max-height:calc(100dvh - 240px)!important;
-    max-height:calc(100vh - 240px)!important;
+
+  /* hide desktop actions, show mobile bottom bar */
+  .sidebar .actions{display:none}
+
+  /* mobile bottom action bar */
+  .mobile-bar{
+    display:flex;position:fixed;bottom:0;left:0;right:0;
+    background:rgba(10,10,20,.95);
+    backdrop-filter:blur(16px);
+    border-top:1px solid var(--border);
+    padding:8px 12px calc(8px + env(safe-area-inset-bottom));
+    gap:8px;z-index:50;
   }
+  .mobile-bar button{
+    flex:1;padding:12px 4px;border:none;border-radius:12px;
+    font-size:.78rem;font-weight:700;cursor:pointer;
+    transition:all .15s;color:var(--text-mid);
+    background:rgba(255,255,255,.06);
+    border:1px solid var(--border);
+  }
+  .mobile-bar button:active{transform:scale(.93)}
+  .mobile-bar .mb-resign{color:#f87171;background:rgba(248,113,113,.08);border-color:rgba(248,113,113,.2)}
+
+  /* canvas */
+  #board-canvas,#battle-canvas,#tsumego-canvas{
+    max-width:calc(100vw - 4px)!important;
+    max-height:calc(100dvh - 255px)!important;
+    max-height:calc(100vh - 255px)!important;
+  }
+
+  /* touch targets */
+  .mbtn{padding:13px 22px;min-height:46px}
+  .menu-btn{min-height:52px}
+  .btn-back{min-height:40px}
+
+  /* menu on mobile */
+  .logo h1{font-size:3rem}
+  .menu-inner{padding:32px 20px}
 }
+
+/* show mobile bar only on mobile */
+.mobile-bar{display:none}
 </style>
 </head>
 <body>
 
 <!-- 主菜单 -->
 <div id="menu-screen" class="screen active">
-  <div class="logo">
-    <h1>Z.X.T 围棋</h1>
-    <div class="logo-deco">
-      <span></span><span></span><span></span><span></span><span></span>
+  <div class="menu-inner">
+    <div class="logo">
+      <h1>ZXT GO</h1>
+      <div class="logo-badge">围棋 AI 学习平台</div>
+      <div class="logo-stones">
+        <span></span><span></span><span></span><span></span><span></span><span></span>
+      </div>
     </div>
+    <nav class="menu-nav">
+      <button class="menu-btn btn-primary" onclick="showScreen('chapter-screen')">
+        <span class="menu-btn-icon">📖</span>
+        <span class="menu-btn-label">关卡模式</span>
+        <span class="menu-btn-arrow">›</span>
+      </button>
+      <button class="menu-btn btn-tsumego" onclick="showScreen('tsumego-chapter-screen')">
+        <span class="menu-btn-icon">🔴</span>
+        <span class="menu-btn-label">死活题</span>
+        <span class="menu-btn-arrow">›</span>
+      </button>
+      <button class="menu-btn btn-secondary" onclick="showScreen('difficulty-screen')">
+        <span class="menu-btn-icon">⚔️</span>
+        <span class="menu-btn-label">自由对战</span>
+        <span class="menu-btn-arrow">›</span>
+      </button>
+    </nav>
   </div>
-  <button class="menu-btn btn-primary" onclick="showScreen('chapter-screen')">关卡模式</button>
-  <button class="menu-btn btn-primary" style="background:linear-gradient(135deg,#c0392b,#e74c3c);color:#fff" onclick="showScreen('tsumego-chapter-screen')">死活题</button>
-  <button class="menu-btn btn-secondary" onclick="showScreen('difficulty-screen')">自由对战</button>
 </div>
 
 <!-- 章节选择 -->
@@ -246,6 +491,12 @@ body{background:var(--bg);color:var(--text);font-family:'PingFang SC','Microsoft
   </div>
   <div class="game-main">
     <canvas id="board-canvas"></canvas>
+  </div>
+  <!-- 移动端底部操作栏 -->
+  <div class="mobile-bar">
+    <button onclick="undoMove()">↩ 悔棋</button>
+    <button onclick="passMove()">⏭ 虚手</button>
+    <button onclick="showScreen('chapter-screen')" style="flex:.8">← 返回</button>
   </div>
 </div>
 
@@ -366,13 +617,13 @@ body{background:var(--bg);color:var(--text);font-family:'PingFang SC','Microsoft
         <span id="b-turn">你的回合</span>
       </div>
     </div>
-    <div style="padding:10px;background:#0f0f28;border-radius:10px">
+    <div style="padding:10px 12px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:12px">
       <div class="score-row"><span class="score-lbl">黑方提子</span><span class="score-val" id="b-cap">0</span></div>
       <div class="score-row"><span class="score-lbl">白方提子</span><span class="score-val" id="w-cap">0</span></div>
-      <div class="score-row" style="border:none"><span class="score-lbl">步数</span><span class="score-val" id="b-moves">0</span></div>
+      <div class="score-row" style="border:none;padding-bottom:0"><span class="score-lbl">步数</span><span class="score-val" id="b-moves">0</span></div>
     </div>
     <div class="ai-thinking" id="b-ai-think"></div>
-    <div id="b-ai-badge" style="font-size:.72rem;padding:4px 8px;border-radius:6px;background:#1a1a2e;color:#7777aa;margin-top:-4px;display:none"></div>
+    <div id="b-ai-badge" style="font-size:.71rem;padding:4px 10px;border-radius:8px;background:rgba(136,117,240,.1);border:1px solid rgba(136,117,240,.2);color:#a89cf0;margin-top:-4px;display:none"></div>
     <label class="inf-toggle">
       <input type="checkbox" id="b-inf-toggle" onchange="toggleBattleInf()"> 显示势力图
     </label>
@@ -385,6 +636,13 @@ body{background:var(--bg);color:var(--text);font-family:'PingFang SC','Microsoft
   </div>
   <div class="game-main">
     <canvas id="battle-canvas"></canvas>
+  </div>
+  <!-- 移动端底部操作栏 -->
+  <div class="mobile-bar">
+    <button onclick="battleUndo()">↩ 悔棋</button>
+    <button onclick="battlePass()">⏭ 虚手</button>
+    <button class="mb-resign" onclick="resignGame()">🏳 认输</button>
+    <button onclick="showScreen('difficulty-screen')" style="flex:.8">← 返回</button>
   </div>
 </div>
 
