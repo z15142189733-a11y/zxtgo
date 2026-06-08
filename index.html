@@ -320,14 +320,36 @@ body{background:var(--bg);color:var(--text);font-family:'PingFang SC','Microsoft
     <div class="diff-card medium" onclick="startBattle('medium')">
       <div class="diff-icon">🌿</div>
       <div class="diff-name">进阶</div>
-      <div class="diff-desc">19路: 神经网络AI<br>9/13路: MCTS</div>
+      <div class="diff-desc" id="desc-medium">神经网络AI约业余1段<br>配置云端可达5段</div>
     </div>
     <div class="diff-card hard" onclick="startBattle('hard')">
       <div class="diff-icon">🌳</div>
       <div class="diff-name">挑战</div>
-      <div class="diff-desc">19路: KataGo约2段<br>9/13路: 强力MCTS</div>
+      <div class="diff-desc" id="desc-hard">本地KataGo约2段<br>配置云端可达7段</div>
     </div>
   </div>
+  <!-- HuggingFace Spaces 云端 KataGo URL 配置 -->
+  <div style="width:100%;max-width:680px;margin-top:12px">
+    <details id="cloud-ai-details" style="background:rgba(255,255,255,.06);border-radius:10px;padding:10px 14px">
+      <summary style="cursor:pointer;font-size:.85rem;font-weight:700;color:var(--text);user-select:none">
+        🌐 云端强力 AI（可选）— 接入 HuggingFace KataGo
+      </summary>
+      <div style="margin-top:8px;font-size:.78rem;color:var(--text-dim);line-height:1.6">
+        填写后「进阶」/「挑战」将调用云端 <b>KataGo b18c384</b>（约业余5-7段），强度远超本地。<br>
+        留空则使用本地神经网络。<a href="https://huggingface.co/spaces" target="_blank" style="color:#7b68ee">如何部署？</a>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+        <input id="hf-url-input" type="url" placeholder="https://你的用户名-zxt-go-katago.hf.space"
+          style="flex:1;padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.2);
+                 background:rgba(0,0,0,.3);color:var(--text);font-size:.82rem;outline:none"
+          oninput="saveHFUrl()" />
+        <button onclick="testHFUrl()" style="padding:7px 12px;border-radius:8px;background:#2196a8;
+          color:#fff;border:none;cursor:pointer;font-size:.8rem;white-space:nowrap">测试连接</button>
+      </div>
+      <div id="hf-url-status" style="font-size:.76rem;margin-top:4px;min-height:16px;color:#7b68ee"></div>
+    </details>
+  </div>
+
   <button class="btn-back" style="margin-top:10px" onclick="showScreen('menu-screen')">← 返回主菜单</button>
 </div>
 
@@ -1839,6 +1861,69 @@ class BrowserKataGoAI {
     }
   }
 }
+// ═══════════════════════════════════════════════════════
+// CloudKataGoAI — 调用 HuggingFace Spaces KataGo API
+// 强度：b18c384 模型，约业余 5-7 段（远强于本地）
+// 失败时自动降级至本地 BrowserKataGoAI
+// ═══════════════════════════════════════════════════════
+class CloudKataGoAI {
+  constructor(diff, hfUrl, localFallback) {
+    this.diff     = diff;
+    this.hfUrl    = hfUrl.replace(/\/$/, '');  // 去掉尾部斜杠
+    this.fallback = localFallback;
+    this._badge   = null;
+    this._failCount = 0;          // 连续失败次数
+  }
+
+  _setBadge(text, color) {
+    if (!this._badge) this._badge = document.getElementById('b-ai-badge');
+    if (this._badge) { this._badge.textContent = text; this._badge.style.background = color || '#555'; }
+  }
+
+  // 主入口（与 BrowserKataGoAI.getBestMoveAsync 同签名，便于 _doAIMove 统一处理）
+  async getBestMoveAsync(game, color, onStatus) {
+    if (onStatus) onStatus('cloud_thinking');
+    this._setBadge('🌐 云端 KataGo 思考中…', '#2196a8');
+
+    const toPlay = color === 1 ? 'B' : 'W';
+    const body = {
+      board_size: game.size,
+      moves:      battleMoveHistory,   // [{color:'B'|'W', pos:'D4'}]
+      to_play:    toPlay,
+      komi:       6.5,
+      difficulty: this.diff,
+    };
+
+    try {
+      const resp = await fetch(`${this.hfUrl}/api/move`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(body),
+        signal:  AbortSignal.timeout(30000),
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+      if (data.error) throw new Error(data.error);
+
+      this._failCount = 0;
+      const mv = (data.move || '').toLowerCase().trim();
+      if (data.is_resign) { this._setBadge('🌐 云端 KataGo (b18c384)', '#2196a8'); return AI_RESIGN; }
+      if (data.is_pass  || mv === 'pass') { this._setBadge('🌐 云端 KataGo (b18c384)', '#2196a8'); return null; }
+      const [r, c] = fromGTP(mv, game.size);
+      if (r < 0 || r >= game.size || c < 0 || c >= game.size) throw new Error(`非法落点: ${mv}`);
+      this._setBadge('🌐 云端 KataGo (b18c384)', '#2196a8');
+      return [r, c];
+    } catch (e) {
+      this._failCount++;
+      console.warn(`[CloudKataGo] 请求失败 (${this._failCount}次):`, e.message);
+      // 降级至本地 AI
+      if (onStatus) onStatus('browser_loading');
+      this._setBadge('⚠️ 云端不可用，切换本地…', '#c0703a');
+      return this.fallback.getBestMoveAsync(game, color, onStatus);
+    }
+  }
+}
+
 let completedLevels = new Set(JSON.parse(localStorage.getItem('xtgo_completed') || '[]'));
 let atariCount = 0; // for atari_opp goal
 
@@ -2107,9 +2192,18 @@ function selectSize(sz) {
 function startBattle(diff) {
   battleDiff = diff;
   battleMoveHistory = [];
-  const localAI = new GoAI(diff);
-  // 入门=本地MCTS（~业余15-20级，即时）；进阶/挑战=浏览器神经网络AI（19×19约业余1-2段）
-  battleAI = diff === 'easy' ? localAI : new BrowserKataGoAI(diff, localAI);
+  const localAI  = new GoAI(diff);
+  const browserAI = new BrowserKataGoAI(diff, localAI);
+  const DEFAULT_HF_URL = 'https://1111qqq-q-zxtgo.hf.space';
+  const hfUrl = (localStorage.getItem('xtgo_hf_url') || DEFAULT_HF_URL).trim();
+  // 入门=本地MCTS；有云端URL且非入门=CloudKataGoAI（降级至browserAI）；否则browserAI
+  if (diff === 'easy') {
+    battleAI = localAI;
+  } else if (hfUrl) {
+    battleAI = new CloudKataGoAI(diff, hfUrl, browserAI);
+  } else {
+    battleAI = browserAI;
+  }
   battGame = new GoGame(battleSize);
   battRenderer = new BoardRenderer(document.getElementById('battle-canvas'));
   battRenderer.setup(battleSize); aiThinking = false;
@@ -2156,7 +2250,15 @@ async function _doAIMove() {
   aiThinking=true;
   const thinkEl = document.getElementById('b-ai-think');
   let m;
-  if (battleAI instanceof BrowserKataGoAI) {
+  if (battleAI instanceof CloudKataGoAI) {
+    thinkEl.textContent = '🌐 云端 KataGo 思考中…';
+    m = await battleAI.getBestMoveAsync(battGame, 2, (src) => {
+      if (src === 'cloud_thinking')  thinkEl.textContent = '🌐 云端 KataGo 思考中…';
+      else if (src === 'browser_loading') thinkEl.textContent = '⏳ 加载神经网络模型（首次约30秒）…';
+      else if (src === 'browser_thinking') thinkEl.textContent = '🧠 KataGo 神经网络思考中…';
+      else if (src === 'local_mcts') thinkEl.textContent = '⚙️ MCTS 深度搜索中…';
+    });
+  } else if (battleAI instanceof BrowserKataGoAI) {
     thinkEl.textContent = '⏳ 加载 AI 模型…';
     m = await battleAI.getBestMoveAsync(battGame, 2, (src) => {
       if (src === 'browser_loading') thinkEl.textContent = '⏳ 加载神经网络模型（首次约30秒）…';
@@ -2673,6 +2775,46 @@ if ('serviceWorker' in navigator) {
 
 // ── 浏览器 AI 预热：打开对战界面时静默预加载模型 ──
 // （由 startBattle 内 BrowserKataGoAI 构造时自动触发 _ensureModel）
+
+// ── HuggingFace 云端 AI URL 管理 ────────────────────────
+function saveHFUrl() {
+  const v = (document.getElementById('hf-url-input')?.value || '').trim();
+  if (v) localStorage.setItem('xtgo_hf_url', v);
+  else   localStorage.removeItem('xtgo_hf_url');
+  document.getElementById('hf-url-status').textContent = '';
+}
+
+async function testHFUrl() {
+  const url = (document.getElementById('hf-url-input')?.value || '').trim().replace(/\/$/,'');
+  const st  = document.getElementById('hf-url-status');
+  if (!url) { st.textContent = '⚠️ 请先填写 URL'; st.style.color = '#c0703a'; return; }
+  st.textContent = '⏳ 连接中…'; st.style.color = '#aaa';
+  try {
+    const resp = await fetch(`${url}/`, { signal: AbortSignal.timeout(12000) });
+    const data = await resp.json();
+    if (data.engine_ready) {
+      st.textContent = '✅ 连接成功！KataGo 引擎已就绪'; st.style.color = '#5ba85b';
+    } else {
+      st.textContent = `⚠️ 服务器响应但引擎未就绪: ${data.error||''}`;
+      st.style.color = '#c0703a';
+    }
+  } catch(e) {
+    st.textContent = `❌ 连接失败: ${e.message}`; st.style.color = '#c05050';
+  }
+}
+
+// ── 页面加载时恢复 HF URL（默认填入内置地址）──
+(function() {
+  const DEFAULT_HF_URL = 'https://1111qqq-q-zxtgo.hf.space';
+  const saved = localStorage.getItem('xtgo_hf_url') || DEFAULT_HF_URL;
+  const inp = document.getElementById('hf-url-input');
+  if (inp) inp.value = saved;
+  // 有URL时自动展开面板
+  if (saved) {
+    const det = document.getElementById('cloud-ai-details');
+    if (det) det.open = true;
+  }
+})();
 </script>
 </body>
 </html>
