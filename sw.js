@@ -1,11 +1,11 @@
-// Z.X.T 围棋 Service Worker — 离线缓存
-const CACHE_NAME = 'zxtgo-v2';
+// ZXT GO Service Worker — 离线缓存
+const CACHE_NAME = 'zxtgo-v3';
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png'
+  './',
+  './index.html',
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
 self.addEventListener('install', event => {

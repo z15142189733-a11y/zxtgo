@@ -1,13 +1,13 @@
 {
-  "name": "Z.X.T 围棋",
-  "short_name": "ZXT围棋",
-  "description": "围棋启蒙学习游戏 — 从零开始寓教于乐",
-  "start_url": "/",
-  "scope": "/",
+  "name": "ZXT GO",
+  "short_name": "ZXT GO",
+  "description": "围棋 AI 学习平台 — 从入门到进阶",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#1a2f4a",
-  "theme_color": "#c9a84c",
+  "background_color": "#07070f",
+  "theme_color": "#d4a843",
   "icons": [
     {
       "src": "icon-192.png",
