@@ -353,70 +353,129 @@ body{
 
 /* ─── MOBILE TOP INFO BAR (hidden on desktop) ─── */
 .m-top-bar{display:none}
-/* ─── MOBILE BAR (hidden on desktop — must be BEFORE @media) ─── */
+/* ─── MOBILE BAR (hidden on desktop — MUST be before @media) ─── */
 .mobile-bar{display:none}
 
 /* ─── MOBILE ─── */
 @media(max-width:700px),(pointer:coarse){
+
+  /* ── 游戏屏幕整体：纵向三段布局 ─────────────────── */
   #game-screen,#battle-screen,#tsumego-game-screen{
-    flex-direction:column;padding:0;justify-content:flex-start;overflow:hidden;
+    flex-direction:column;
+    padding:0;
+    justify-content:flex-start;
+    overflow:hidden;
+    height:100dvh;height:100vh;
   }
 
-  /* hide sidebar entirely on mobile game screens */
-  #game-screen .sidebar,#battle-screen .sidebar,#tsumego-game-screen .sidebar{display:none!important}
+  /* 隐藏桌面侧边栏 */
+  #game-screen .sidebar,
+  #battle-screen .sidebar,
+  #tsumego-game-screen .sidebar{display:none!important}
 
-  /* mobile top info bar: appears above board */
+  /* ── 顶部信息栏：两行布局 ───────────────────────── */
   .m-top-bar{
-    display:flex;flex-shrink:0;width:100%;
-    align-items:center;flex-wrap:wrap;gap:6px 10px;
-    padding:calc(env(safe-area-inset-top) + 8px) 14px 8px;
-    background:rgba(10,10,20,.92);
-    backdrop-filter:blur(14px);
-    border-bottom:1px solid var(--border);
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    flex-shrink:0;
+    width:100%;
+    column-gap:0;row-gap:10px;
+    padding:calc(env(safe-area-inset-top) + 14px) 20px 16px;
+    background:rgba(12,12,22,.97);
+    backdrop-filter:blur(18px);
+    border-bottom:1px solid rgba(255,255,255,.09);
     z-index:10;order:0;
   }
+  /* 第一行左：标签 */
   .m-tag{
-    font-size:.68rem;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;
-    padding:3px 9px;border-radius:6px;
-    background:rgba(212,168,67,.12);color:var(--accent);border:1px solid rgba(212,168,67,.22);
+    order:1;flex:1;
+    font-size:.72rem;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;
+    padding:4px 11px;border-radius:7px;
+    background:rgba(212,168,67,.13);
+    color:var(--accent);
+    border:1px solid rgba(212,168,67,.28);
+    display:inline-block;align-self:center;
+    max-width:fit-content;
   }
-  .m-turn-info{display:flex;align-items:center;gap:5px;flex:1;min-width:0}
-  .m-turn-info span{font-size:.82rem;font-weight:700;color:var(--text);white-space:nowrap}
-  .m-stats{font-size:.76rem;color:var(--text-mid);white-space:nowrap;margin-left:auto}
+  /* 第一行右：统计数字 */
+  .m-stats{
+    order:2;flex:0 0 auto;
+    font-size:.84rem;font-weight:600;color:var(--text-mid);
+    letter-spacing:.5px;
+  }
+  /* 第二行：回合指示（full width） */
+  .m-turn-info{
+    order:3;flex:0 0 100%;
+    display:flex;align-items:center;gap:11px;
+  }
+  .m-turn-info .sdot{
+    width:20px;height:20px;
+    border-radius:50%;flex-shrink:0;
+    box-shadow:0 0 12px rgba(255,255,255,.2);
+  }
+  .m-turn-info span{
+    font-size:1.18rem;font-weight:800;
+    color:var(--text);letter-spacing:.3px;
+  }
 
-  /* board area: center canvas, pad bottom to avoid fixed bar overlap */
+  /* ── 棋盘区域 ────────────────────────────────────── */
   .game-main{
     order:1;flex:1;min-height:0;
     display:flex;align-items:center;justify-content:center;
-    padding-top:8px;
-    padding-bottom:calc(68px + env(safe-area-inset-bottom));
+    padding:6px 4px;
   }
 
-  /* mobile bottom action bar */
+  /* ── 底部按钮 2×2 网格（布局流内，非 fixed）──────── */
   .mobile-bar{
-    display:flex;position:fixed;bottom:0;left:0;right:0;
-    background:rgba(10,10,20,.96);
-    backdrop-filter:blur(16px);
-    border-top:1px solid var(--border);
-    padding:8px 10px calc(8px + env(safe-area-inset-bottom));
-    gap:8px;z-index:50;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    flex-shrink:0;
+    order:2;
+    width:100%;
+    padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+    background:rgba(12,12,22,.97);
+    backdrop-filter:blur(18px);
+    border-top:1px solid rgba(255,255,255,.09);
   }
   .mobile-bar button{
-    flex:1;padding:13px 4px;border:none;border-radius:12px;
-    font-size:.8rem;font-weight:700;cursor:pointer;
-    transition:all .15s;color:var(--text);
-    background:rgba(255,255,255,.08);
-    border:1px solid rgba(255,255,255,.12);
+    padding:18px 8px;
+    border:none;border-radius:14px;
+    font-size:.95rem;font-weight:700;
+    cursor:pointer;
+    transition:all .15s;
+    color:var(--text);
+    background:rgba(255,255,255,.07);
+    border:1px solid rgba(255,255,255,.11);
+    letter-spacing:.3px;
   }
-  .mobile-bar button:active{transform:scale(.93)}
-  .mobile-bar .mb-resign{color:#f87171;background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.25)}
-  .mobile-bar .mb-pass{color:#86efac;background:rgba(74,222,128,.07);border-color:rgba(74,222,128,.2)}
+  .mobile-bar button:active{
+    transform:scale(.95);
+    background:rgba(255,255,255,.14);
+  }
+  .mobile-bar .mb-pass{
+    color:#86efac;
+    background:rgba(74,222,128,.08);
+    border-color:rgba(74,222,128,.22);
+  }
+  .mobile-bar .mb-resign{
+    color:#f87171;
+    background:rgba(248,113,113,.08);
+    border-color:rgba(248,113,113,.22);
+  }
+  /* 3-button screens: 返回 spans full width */
+  .mobile-bar .mb-full{
+    grid-column:1 / -1;
+    background:rgba(255,255,255,.05);
+    color:var(--text-mid);
+  }
 
-  /* canvas — fill the available space between top bar and bottom bar */
+  /* canvas：在顶栏和底栏之间最大化 */
   #board-canvas,#battle-canvas,#tsumego-canvas{
     max-width:calc(100vw - 8px)!important;
-    max-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 116px)!important;
-    max-height:calc(100vh  - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 116px)!important;
+    max-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 220px)!important;
+    max-height:calc(100vh  - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 220px)!important;
   }
 
   /* touch targets */
@@ -529,7 +588,7 @@ body{
   <div class="mobile-bar">
     <button class="mb-pass" onclick="passMove()">⏭ 虚手</button>
     <button onclick="undoMove()">↩ 悔棋</button>
-    <button onclick="showScreen('chapter-screen')" style="flex:.8">← 返回</button>
+    <button class="mb-full" onclick="showScreen('chapter-screen')">← 返回章节</button>
   </div>
 </div>
 
@@ -591,7 +650,7 @@ body{
   <div class="mobile-bar">
     <button onclick="tsumegoReset()">↩ 重置</button>
     <button id="m-ts-next" style="display:none" onclick="tsNextLevel()">下一题 →</button>
-    <button onclick="showScreen('tsumego-chapter-screen')" style="flex:.8">← 返回</button>
+    <button class="mb-full" onclick="showScreen('tsumego-chapter-screen')">← 返回</button>
   </div>
 </div>
 
@@ -699,7 +758,7 @@ body{
     <button class="mb-pass" onclick="battlePass()">⏭ 虚手</button>
     <button onclick="battleUndo()">↩ 悔棋</button>
     <button class="mb-resign" onclick="resignGame()">🏳 认输</button>
-    <button onclick="showScreen('difficulty-screen')" style="flex:.8">← 返回</button>
+    <button onclick="showScreen('difficulty-screen')">← 返回</button>
   </div>
 </div>
 
