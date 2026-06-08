@@ -353,6 +353,8 @@ body{
 
 /* ─── MOBILE TOP INFO BAR (hidden on desktop) ─── */
 .m-top-bar{display:none}
+/* ─── MOBILE BAR (hidden on desktop — must be BEFORE @media) ─── */
+.mobile-bar{display:none}
 
 /* ─── MOBILE ─── */
 @media(max-width:700px),(pointer:coarse){
@@ -382,8 +384,13 @@ body{
   .m-turn-info span{font-size:.82rem;font-weight:700;color:var(--text);white-space:nowrap}
   .m-stats{font-size:.76rem;color:var(--text-mid);white-space:nowrap;margin-left:auto}
 
-  /* board area fills remaining space */
-  .game-main{order:1;flex:1;min-height:0;display:flex;align-items:center;justify-content:center;margin-top:10px}
+  /* board area: center canvas, pad bottom to avoid fixed bar overlap */
+  .game-main{
+    order:1;flex:1;min-height:0;
+    display:flex;align-items:center;justify-content:center;
+    padding-top:8px;
+    padding-bottom:calc(68px + env(safe-area-inset-bottom));
+  }
 
   /* mobile bottom action bar */
   .mobile-bar{
@@ -405,11 +412,11 @@ body{
   .mobile-bar .mb-resign{color:#f87171;background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.25)}
   .mobile-bar .mb-pass{color:#86efac;background:rgba(74,222,128,.07);border-color:rgba(74,222,128,.2)}
 
-  /* canvas — reserves space for top bar + bottom bar */
+  /* canvas — fill the available space between top bar and bottom bar */
   #board-canvas,#battle-canvas,#tsumego-canvas{
-    max-width:calc(100vw - 4px)!important;
-    max-height:calc(100dvh - 140px - env(safe-area-inset-top) - env(safe-area-inset-bottom))!important;
-    max-height:calc(100vh  - 140px - env(safe-area-inset-top) - env(safe-area-inset-bottom))!important;
+    max-width:calc(100vw - 8px)!important;
+    max-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 116px)!important;
+    max-height:calc(100vh  - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 116px)!important;
   }
 
   /* touch targets */
@@ -421,9 +428,6 @@ body{
   .logo h1{font-size:3rem}
   .menu-inner{padding:32px 20px}
 }
-
-/* show mobile bar only on mobile */
-.mobile-bar{display:none}
 </style>
 </head>
 <body>
