@@ -379,8 +379,28 @@ body{
 
 /* ─── MOBILE TOP INFO BAR (hidden on desktop) ─── */
 .m-top-bar{display:none}
+/* ─── TERRITORY BAR (hidden on desktop) ─── */
+.terr-bar{display:none}
 /* ─── MOBILE BAR (hidden on desktop — MUST be before @media) ─── */
 .mobile-bar{display:none}
+
+/* ─── DESKTOP SIDEBAR TERRITORY ─── */
+.terr-desktop-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:7px 0;border-top:1px solid var(--border);margin-top:2px;
+}
+.terr-desktop-lbl{font-size:.72rem;color:var(--text-mid)}
+.terr-desktop-val{font-size:.82rem;font-weight:700;color:var(--text)}
+.terr-desktop-adv{
+  text-align:center;padding:5px 8px;border-radius:8px;
+  font-size:.8rem;font-weight:700;margin-top:2px;
+  background:rgba(255,255,255,.04);border:1px solid var(--border);
+  color:var(--text-mid);
+}
+.terr-desktop-adv.b-lead{color:#86efac;background:rgba(74,222,128,.06);border-color:rgba(74,222,128,.2)}
+.terr-desktop-adv.w-lead{color:#fca5a5;background:rgba(248,113,113,.06);border-color:rgba(248,113,113,.2)}
+.terr-ovl-chk{display:flex;align-items:center;gap:6px;margin-top:6px;
+  font-size:.75rem;color:var(--text-mid);cursor:pointer}
 
 /* ─── MOBILE ─── */
 @media(max-width:700px),(pointer:coarse){
@@ -473,8 +493,47 @@ body{
   .game-main{
     order:1;flex:1;min-height:0;
     display:flex;align-items:center;justify-content:center;
-    padding:6px 4px;
+    padding:4px 4px 0;
   }
+
+  /* ── 实时估目栏 ──────────────────────────────────── */
+  .terr-bar{
+    display:flex;align-items:center;
+    order:2;flex-shrink:0;width:100%;
+    padding:8px 16px;
+    background:rgba(10,10,18,.97);
+    border-top:1px solid rgba(255,255,255,.07);
+    gap:0;
+  }
+  .terr-b{flex:1;display:flex;align-items:center;gap:8px}
+  .terr-w{flex:1;display:flex;align-items:center;justify-content:flex-end;gap:8px}
+  .terr-info{display:flex;flex-direction:column;gap:1px;min-width:0}
+  .terr-num{font-size:1.35rem;font-weight:900;color:var(--text);line-height:1}
+  .terr-unit{font-size:.65rem;color:var(--text-mid);line-height:1;margin-top:1px}
+  .terr-mid{
+    display:flex;flex-direction:column;align-items:center;gap:5px;
+    padding:0 10px;flex-shrink:0;
+  }
+  .terr-adv-m{font-size:.75rem;font-weight:700;color:var(--text-mid);text-align:center;white-space:nowrap}
+  .terr-adv-m.b-lead{color:#86efac}
+  .terr-adv-m.w-lead{color:#fca5a5}
+  .terr-ovl-btn{
+    font-size:.68rem;font-weight:600;
+    padding:4px 10px;border-radius:7px;cursor:pointer;
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.1);
+    color:var(--text-mid);transition:all .15s;white-space:nowrap;
+  }
+  .terr-ovl-btn.on{
+    background:rgba(212,168,67,.12);
+    border-color:rgba(212,168,67,.3);
+    color:var(--accent);
+  }
+  .terr-stone{
+    width:14px;height:14px;border-radius:50%;flex-shrink:0;
+  }
+  .terr-stone.b{background:radial-gradient(circle at 33% 33%,#555,#0a0a0a);box-shadow:0 1px 3px rgba(0,0,0,.5)}
+  .terr-stone.w{background:radial-gradient(circle at 33% 33%,#fff,#d0d0d0);box-shadow:0 1px 3px rgba(0,0,0,.3)}
 
   /* ── 底部按钮 2×2 网格（布局流内，非 fixed）──────── */
   .mobile-bar{
@@ -482,7 +541,7 @@ body{
     grid-template-columns:1fr 1fr;
     gap:10px;
     flex-shrink:0;
-    order:2;
+    order:3;
     width:100%;
     padding:10px 14px calc(10px + env(safe-area-inset-bottom));
     background:rgba(12,12,22,.97);
@@ -521,11 +580,11 @@ body{
     color:var(--text-mid);
   }
 
-  /* canvas：在顶栏和底栏之间最大化 */
+  /* canvas：顶栏 + 估目栏 + 底栏 之间最大化 */
   #board-canvas,#battle-canvas,#tsumego-canvas{
     max-width:calc(100vw - 8px)!important;
-    max-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 220px)!important;
-    max-height:calc(100vh  - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 220px)!important;
+    max-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 278px)!important;
+    max-height:calc(100vh  - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 278px)!important;
   }
 
   /* touch targets */
@@ -637,6 +696,27 @@ body{
   </div>
   <div class="game-main">
     <canvas id="board-canvas"></canvas>
+  </div>
+  <!-- 移动端实时估目栏 -->
+  <div class="terr-bar" id="g-terr-bar">
+    <div class="terr-b">
+      <span class="terr-stone b"></span>
+      <div class="terr-info">
+        <span class="terr-num" id="g-terr-m">—</span>
+        <span class="terr-unit">目（黑）</span>
+      </div>
+    </div>
+    <div class="terr-mid">
+      <div class="terr-adv-m" id="g-terr-adv">—</div>
+      <button class="terr-ovl-btn" id="g-terr-btn" onclick="toggleGameTerritory()">领地图</button>
+    </div>
+    <div class="terr-w">
+      <div class="terr-info" style="align-items:flex-end">
+        <span class="terr-num" id="g-terr-m-w">—</span>
+        <span class="terr-unit">目（白含贴）</span>
+      </div>
+      <span class="terr-stone w"></span>
+    </div>
   </div>
   <!-- 移动端底部操作栏 -->
   <div class="mobile-bar">
@@ -783,10 +863,19 @@ body{
       <div class="score-row"><span class="score-lbl">白方提子</span><span class="score-val" id="w-cap">0</span></div>
       <div class="score-row" style="border:none;padding-bottom:0"><span class="score-lbl">步数</span><span class="score-val" id="b-moves">0</span></div>
     </div>
+    <!-- 桌面端实时估目 -->
+    <div style="padding:10px 12px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:12px;margin-top:4px">
+      <div class="score-row"><span class="score-lbl">黑方估目</span><span class="score-val" id="b-terr-d">—</span></div>
+      <div class="score-row"><span class="score-lbl">白方估目</span><span class="score-val" id="w-terr-d">—</span></div>
+      <div class="score-row" style="border:none;padding-bottom:0"><span class="score-lbl">目差</span><span class="score-val" id="b-adv-d">—</span></div>
+    </div>
     <div class="ai-thinking" id="b-ai-think"></div>
     <div id="b-ai-badge" style="font-size:.71rem;padding:4px 10px;border-radius:8px;background:rgba(136,117,240,.1);border:1px solid rgba(136,117,240,.2);color:#a89cf0;margin-top:-4px;display:none"></div>
     <label class="inf-toggle">
       <input type="checkbox" id="b-inf-toggle" onchange="toggleBattleInf()"> 显示势力图
+    </label>
+    <label class="inf-toggle">
+      <input type="checkbox" id="b-terr-toggle" onchange="toggleBattleTerritory()"> 显示领地图
     </label>
     <div class="actions">
       <button class="act-btn btn-pass" onclick="battlePass()">⏭ 虚手</button>
@@ -807,6 +896,27 @@ body{
   </div>
   <div class="game-main">
     <canvas id="battle-canvas"></canvas>
+  </div>
+  <!-- 移动端实时估目栏 -->
+  <div class="terr-bar" id="b-terr-bar">
+    <div class="terr-b">
+      <span class="terr-stone b"></span>
+      <div class="terr-info">
+        <span class="terr-num" id="b-terr-m">—</span>
+        <span class="terr-unit">目（黑）</span>
+      </div>
+    </div>
+    <div class="terr-mid">
+      <div class="terr-adv-m" id="b-terr-adv">—</div>
+      <button class="terr-ovl-btn" id="b-terr-btn" onclick="toggleBattleTerritory()">领地图</button>
+    </div>
+    <div class="terr-w">
+      <div class="terr-info" style="align-items:flex-end">
+        <span class="terr-num" id="w-terr-m">—</span>
+        <span class="terr-unit">目（白含贴）</span>
+      </div>
+      <span class="terr-stone w"></span>
+    </div>
   </div>
   <!-- 移动端底部操作栏 -->
   <div class="mobile-bar">
@@ -985,6 +1095,45 @@ class GoGame {
       else if (v < -0.3) w++;
     }
     return { black: b + this.captured[0], white: w + this.captured[1] + komi };
+  }
+  // 洪水填充领地估算（中国规则：面积计分）
+  estimateTerritory(komi = 7.5) {
+    const s = this.size, bd = this.board;
+    const vis  = Array.from({length:s}, () => new Uint8Array(s));
+    const tmap = Array.from({length:s}, () => new Int8Array(s)); // 0=中立 1=黑 2=白
+    let bTerr = 0, wTerr = 0;
+    for (let r = 0; r < s; r++) {
+      for (let c = 0; c < s; c++) {
+        if (vis[r][c] || bd[r][c]) continue;
+        // BFS 遍历连通空区
+        const cells = [[r,c]];
+        vis[r][c] = 1;
+        let bEdge = false, wEdge = false;
+        let head = 0;
+        while (head < cells.length) {
+          const [cr,cc] = cells[head++];
+          for (const [dr,dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+            const nr=cr+dr, nc=cc+dc;
+            if (nr<0||nr>=s||nc<0||nc>=s) continue;
+            if      (bd[nr][nc]===1) { bEdge=true; }
+            else if (bd[nr][nc]===2) { wEdge=true; }
+            else if (!vis[nr][nc])   { vis[nr][nc]=1; cells.push([nr,nc]); }
+          }
+        }
+        const own = (bEdge&&!wEdge)?1:(!bEdge&&wEdge)?2:0;
+        for (const [gr,gc] of cells) tmap[gr][gc] = own;
+        if (own===1) bTerr+=cells.length;
+        else if (own===2) wTerr+=cells.length;
+      }
+    }
+    let bStones=0, wStones=0;
+    for (let r=0;r<s;r++) for (let c=0;c<s;c++) {
+      if (bd[r][c]===1) bStones++; else if (bd[r][c]===2) wStones++;
+    }
+    const bScore = bStones + bTerr;          // 中国规则：子+目
+    const wScore = wStones + wTerr + komi;
+    return { bTerr, wTerr, bStones, wStones, bScore, wScore,
+             adv: bScore - wScore, tmap };
   }
   getValidMoves(color) {
     const m = [];
@@ -1455,6 +1604,8 @@ class BoardRenderer {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.showInfluence = false;
+    this.showTerritory = false;
+    this._terrMap = null;
     this.highlights = [];
     this.lastMove = null;
     this.hover = null;
@@ -1550,6 +1701,19 @@ class BoardRenderer {
     for (let r = 0; r < s; r++) for (let c = 0; c < s; c++) {
       if (!game.board[r][c]) continue;
       const {x,y} = this.pt(r,c); this.drawStone(ctx,x,y,game.board[r][c]);
+    }
+
+    // ── 领地标记（小方块叠加在空点上）
+    if (this.showTerritory && this._terrMap) {
+      const sq = Math.max(3, this.cell * 0.26);
+      for (let r=0;r<s;r++) for (let c=0;c<s;c++) {
+        if (game.board[r][c]) continue;
+        const o = this._terrMap[r][c];
+        if (!o) continue;
+        const {x,y} = this.pt(r,c);
+        ctx.fillStyle = o===1 ? 'rgba(10,10,10,0.78)' : 'rgba(248,248,248,0.88)';
+        ctx.fillRect(x-sq/2, y-sq/2, sq, sq);
+      }
     }
 
     // ── 最后一手标记
@@ -2612,6 +2776,8 @@ function updateCampStatus() {
   const mgturn=document.getElementById('m-game-turn');
   if(mgtdot) mgtdot.className=dotClass;
   if(mgturn) mgturn.textContent=isPlayer?'你的回合':'AI回合';
+  // 实时估目
+  refreshTerritory(campGame,campRenderer,'g-terr-m','g-terr-m-w','g-terr-adv');
 }
 
 // ═══════════════════════════════════════════════════════
@@ -2777,6 +2943,62 @@ async function _doAIMove() {
 function toggleBattleInf() {
   if(battRenderer){battRenderer.showInfluence=document.getElementById('b-inf-toggle').checked;battRenderer.draw(battGame);}
 }
+function toggleBattleTerritory() {
+  if(!battRenderer||!battGame) return;
+  const cb=document.getElementById('b-terr-toggle');
+  const btn=document.getElementById('b-terr-btn');
+  const on = cb ? cb.checked : !battRenderer.showTerritory;
+  if(cb) cb.checked=on;
+  battRenderer.showTerritory=on;
+  if(on){
+    const t=battGame.estimateTerritory();
+    battRenderer._terrMap=t.tmap;
+  } else {
+    battRenderer._terrMap=null;
+  }
+  battRenderer.draw(battGame);
+  if(btn) btn.style.background=on?'rgba(100,180,255,.25)':'';
+}
+function toggleGameTerritory() {
+  if(!campRenderer||!campGame) return;
+  const btn=document.getElementById('g-terr-btn');
+  campRenderer.showTerritory=!campRenderer.showTerritory;
+  if(campRenderer.showTerritory){
+    const t=campGame.estimateTerritory();
+    campRenderer._terrMap=t.tmap;
+  } else {
+    campRenderer._terrMap=null;
+  }
+  campRenderer.draw(campGame);
+  if(btn) btn.style.background=campRenderer.showTerritory?'rgba(100,180,255,.25)':'';
+}
+function refreshTerritory(game, renderer, bMId, wMId, advId, bDId, wDId, advDId) {
+  if(!game||!renderer) return;
+  const t=game.estimateTerritory();
+  // update territory map if overlay is on
+  if(renderer.showTerritory){ renderer._terrMap=t.tmap; renderer.draw(game); }
+  // mobile bar numbers
+  const bEl=document.getElementById(bMId);
+  const wEl=document.getElementById(wMId);
+  const advEl=document.getElementById(advId);
+  if(bEl) bEl.textContent=t.bScore.toFixed(1);
+  if(wEl) wEl.textContent=t.wScore.toFixed(1);
+  if(advEl){
+    const diff=t.adv;
+    if(Math.abs(diff)<0.6){ advEl.textContent='均势'; advEl.style.color='#aaa'; }
+    else if(diff>0){ advEl.textContent='黑优 +'+diff.toFixed(1); advEl.style.color='#6ae26a'; }
+    else { advEl.textContent='白优 +'+(-diff).toFixed(1); advEl.style.color='#78b8ff'; }
+  }
+  // desktop sidebar numbers
+  if(bDId){ const e=document.getElementById(bDId); if(e) e.textContent=t.bScore.toFixed(1); }
+  if(wDId){ const e=document.getElementById(wDId); if(e) e.textContent=t.wScore.toFixed(1); }
+  if(advDId){ const e=document.getElementById(advDId); if(e){
+    const diff=t.adv;
+    if(Math.abs(diff)<0.6){ e.textContent='均势'; e.style.color='#aaa'; }
+    else if(diff>0){ e.textContent='黑优 +'+diff.toFixed(1); e.style.color='#6ae26a'; }
+    else { e.textContent='白优 +'+(-diff).toFixed(1); e.style.color='#78b8ff'; }
+  }}
+}
 async function battlePass() {
   if(!battGame||aiThinking) return;
   battGame.pass();
@@ -2831,6 +3053,8 @@ function updateBattleStatus() {
   if(mtdot) mtdot.className=dotClass;
   if(mturn) mturn.textContent=p===1?'你的回合':'AI回合';
   if(mstats) mstats.textContent=`●${battGame.captured[0]} ○${battGame.captured[1]} · ${battGame.moveCount}步`;
+  // 实时估目
+  refreshTerritory(battGame,battRenderer,'b-terr-m','w-terr-m','b-terr-adv','b-terr-d','w-terr-d','b-adv-d');
 }
 
 // ═══════════════════════════════════════════════════════
